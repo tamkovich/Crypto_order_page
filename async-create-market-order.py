@@ -12,7 +12,7 @@ import ccxt.async_support as ccxt_async
 import ccxt
 
 
-async def test(apiKey, secret, test_mode=True):
+async def test_real_async(apiKey, secret, test_mode=True):
     exchange = ccxt_async.bitmex({
         'apiKey': apiKey,
         'secret': secret,
@@ -29,15 +29,15 @@ async def test(apiKey, secret, test_mode=True):
 
     symbol = 'BTC/USD'  # change for your symbol
     ordType = 'Market'  # or 'Market', or 'Stop' or 'StopLimit'
-    side = 'sell'      # or 'buy'
-    amount = 1.0       # change the amount
-    price = 6570.0    # change the price
+    side = 'sell'       # or 'buy'
+    amount = 1.0        # change the amount
+    price = 6570.0      # change the price
 
     try:
         # Market
-        # response = await exchange.create_order(symbol, ordType, side, amount)
+        response = await exchange.create_order(symbol, ordType, side, amount)
         # LimitBuy
-        response = await exchange.create_limit_buy_order(symbol, side, amount)
+        # response = await exchange.create_limit_buy_order(symbol, side, amount)
 
     except Exception as e:
         print('Failed to create order with', exchange.id, type(e).__name__, str(e))
@@ -45,12 +45,43 @@ async def test(apiKey, secret, test_mode=True):
     await exchange.close()
     return response
 
+
+async def test(apiKey, secret, test_mode=True):
+    exchange = ccxt.bitmex({
+        'apiKey': apiKey,
+        'secret': secret,
+        'enableRateLimit': True,
+    })
+
+    response = None
+
+    if test_mode:
+        if 'test' in exchange.urls:
+            exchange.urls['api'] = exchange.urls['test']  # ←----- switch the base URL to testnet
+
+    symbol = 'BTC/USD'  # change for your symbol
+    ordType = 'Market'  # or 'Market', or 'Stop' or 'StopLimit'
+    side = 'sell'       # or 'buy'
+    amount = 1.0        # change the amount
+    price = 6570.0      # change the price
+
+    try:
+        # Market
+        response = exchange.create_order(symbol, ordType, side, amount)
+        # LimitBuy
+        # response = exchange.create_limit_buy_order(symbol, side, amount)
+
+    except Exception as e:
+        print(f'Failed to create order with {exchange.id} {type(e).__name__} {str(e)}')
+
+    return response
+
+
 if __name__ == '__main__':
     with open('config_test.json') as f:
         config = json.load(f)
-    print(asyncio.get_event_loop().run_until_complete(
-        test(
-            config['bitmex'][0]['apiKey'],
-            config['bitmex'][0]['secret']
-        )
-    ))
+    ioloop = asyncio.get_event_loop()
+    tasks = [ioloop.create_task(test(acc['apiKey'], acc['secret'])) for acc in config['bitmex']]
+    wait_tasks = asyncio.wait(tasks)
+    print(ioloop.run_until_complete(wait_tasks))
+    ioloop.close()

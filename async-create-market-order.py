@@ -4,6 +4,7 @@ import asyncio
 import os
 import sys
 import json
+import time
 
 root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root + '/python')
@@ -16,6 +17,7 @@ async def test_real_async(apiKey, secret, test_mode=True):
     exchange = ccxt_async.bitmex({
         'apiKey': apiKey,
         'secret': secret,
+        'timeout': 30000,
         'enableRateLimit': True,
     })
 
@@ -50,6 +52,7 @@ async def test(apiKey, secret, test_mode=True):
     exchange = ccxt.bitmex({
         'apiKey': apiKey,
         'secret': secret,
+        'timeout': 30000,
         'enableRateLimit': True,
     })
 
@@ -81,7 +84,9 @@ if __name__ == '__main__':
     with open('config_test.json') as f:
         config = json.load(f)
     ioloop = asyncio.get_event_loop()
-    tasks = [ioloop.create_task(test(acc['apiKey'], acc['secret'])) for acc in config['bitmex']]
-    wait_tasks = asyncio.wait(tasks)
-    print(ioloop.run_until_complete(wait_tasks))
+    for _ in range(3):
+        tasks = [ioloop.create_task(test_real_async(acc['apiKey'], acc['secret'])) for acc in config['bitmex']]
+        wait_tasks = asyncio.wait(tasks)
+        print(ioloop.run_until_complete(wait_tasks))
+        time.sleep(2)
     ioloop.close()

@@ -37,3 +37,10 @@ class Client:
             print(f'Failed to create order with {self.exchange.id} {type(e).__name__} {str(e)}')
         # await self.exchange.close()
         self.response = response
+
+    @staticmethod
+    def check_if_already_exist(clients, new_client):
+        for client in clients:
+            if client.secret == new_client['secret'] and client.apiKey == new_client['apiKey']:
+                return False
+        return True

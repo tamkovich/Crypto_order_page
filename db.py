@@ -30,14 +30,8 @@ class PythonSQL:
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
-    def fetchall(self, model):
-        return self.session.query(model).all()
-
     def close_session(self):
         self.session.close()
-
-    def commit(self):
-        self.session.commit()
 
     def insert(self, table, params):
         self.conn.execute(table.insert(), params)

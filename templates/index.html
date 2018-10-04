@@ -8,6 +8,39 @@
 
     <!-- Custom styles for this template -->
     <link href="navbar-top.css" rel="stylesheet">
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        socket.on('connect', function() {
+            socket.emit('my event', {data: 'I\'m connected!'});
+        });
+
+        socket.on('my response', function(msg) {
+            console.log(msg);
+            $('#log').append('<br>' + $('<div/>').text('Обновление #' + msg.count + ': ' + msg.data).html());
+            socket.emit('my table');
+        });
+        socket.on('my pos', function(msg) {
+            console.log(msg);
+            var data = msg['data'];
+            var count = msg['count'];
+            var clients_string = '';
+            console.log(data);
+            console.log(count);
+
+            for (i = 0; i < count; i++) {
+                clients_string += '<tr>';
+                clients_string += '<th scope="row">'+i.toString()+'</th>';
+                clients_string += '<td>'+data[i]["apiKey"]+'</td>';
+                clients_string += '<td>'+data[i]["balance"].toString()+'</td>';
+                clients_string += '<td>'+data[i]["order"]+'</td>';
+                clients_string += '</tr>';
+
+            }
+            $(".client-table-body").html(clients_string);
+            socket.emit('my table');
+        });
+    </script>
   </head>
 
   <body>
@@ -42,8 +75,40 @@
         <p class="lead">This example is a quick exercise to illustrate how the top-aligned navbar works. As you scroll, this navbar remains in its original position and moves with the rest of the page.</p>
         <a class="btn btn-lg btn-primary create-order like" role="button">Make Order &raquo;</a>
       </div>
+      <div id="log"></div>
 
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">apiKey</th>
+            <th scope="col">balance</th>
+            <th scope="col">order</th>
+          </tr>
+        </thead>
+        <tbody class="client-table-body">
+          <!--<tr>-->
+            <!--<th scope="row">1</th>-->
+            <!--<td>Mark</td>-->
+            <!--<td>Otto</td>-->
+            <!--<td>@mdo</td>-->
+          <!--</tr>-->
+          <!--<tr>-->
+            <!--<th scope="row">2</th>-->
+            <!--<td>Jacob</td>-->
+            <!--<td>Thornton</td>-->
+            <!--<td>@fat</td>-->
+          <!--</tr>-->
+          <!--<tr>-->
+            <!--<th scope="row">3</th>-->
+            <!--<td>Larry</td>-->
+            <!--<td>the Bird</td>-->
+            <!--<td>@twitter</td>-->
+          <!--</tr>-->
+        </tbody>
+      </table>
     </main>
+
 
     <!-- Bootstrap core JavaScript
     ================================================== -->

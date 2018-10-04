@@ -1,12 +1,10 @@
 {
   "bitmex": [
     {
-      "name": "deniska1",
       "apiKey": "28iB73C3uvYOOdY2IPTJvUMX",
       "secret": "HvhcA95w9bgdpeWeLIn3mG68dRaVZ1d8O7y6jQygPFEstlUD"
     },
     {
-      "name": "user2",
       "apiKey": "lSRRCw1cywzTMdtYwOjizK4v",
       "secret": "35u1f-nQ44q3MFOKIE2kfS_enidgDJ75Q7QqXrfeCfCfZKZp"
     }

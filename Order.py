@@ -8,6 +8,7 @@ class Client:
         self.secret = secret
         self.test_mode = test_mode
         self.symbol = 'BTC/USD'  # change for your symbol
+        self.response = None
 
         self.exchange = ccxt.bitmex({
             'apiKey': apiKey,

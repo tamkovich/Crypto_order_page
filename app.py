@@ -4,8 +4,8 @@ from flask import (
     jsonify
 )
 from Order import Client
+from db import ClientTable, PythonSQL
 import asyncio
-import json
 
 
 app = Flask(__name__)
@@ -40,13 +40,14 @@ def login():
 
 if __name__ == '__main__':
     app.config['SECRET_KEY'] = '123456'
-    with open('config_test.json') as f:
-        config = json.load(f)
     ioloop = asyncio.get_event_loop()
-    for acc in config['bitmex']:
+    db = PythonSQL('sqlite:///db.sqlite')
+    config = db.select_all(ClientTable)
+    db.close_session()
+    for acc in config:
         client = Client(
-            acc['apiKey'],
-            acc['secret'],
+            acc[1],  # apiKey
+            acc[2],  # secret
         )
         clients.append(client)
     app.run()

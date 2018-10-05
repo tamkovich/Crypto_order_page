@@ -1,32 +1,19 @@
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Column
-from sqlalchemy import select
-from sqlalchemy import Integer, String
+from sqlalchemy import select, delete
 from sqlalchemy.orm import sessionmaker
-
-Base = declarative_base()
-meta = MetaData()
-ClientTable = Table(
-    'Client', meta,
-    Column('id', Integer, primary_key=True, autoincrement=True),
-    Column('apiKey', String, unique=True),
-    Column('secret', String, unique=True)
-)
+from tables import ClientTable
 
 
 class PythonSQL:
 
     def __init__(self, db_name):
+        self.db_name = db_name
         self.engine = create_engine(
             db_name,
             # echo=True
         )
         self.conn = self.engine.connect()
 
-        Base.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
@@ -38,16 +25,21 @@ class PythonSQL:
 
     def select_all(self, table):
         select_st = select([table])
-        res = self.conn.execute(select_st)
-        response = []
-        for _row in res:
-            response.append(_row)
+        response = [row for row in self.conn.execute(select_st)]
         return response
+
+    def delete(self, table, params):
+        delete([])
 
 
 def main():
     db = PythonSQL('sqlite:///db.sqlite')
+    print(db.engine.table_names())
     print(db.select_all(ClientTable))
+    config = db.select_all(ClientTable)
+    # c = config[-1]
+    # db.delete(ClientTable, c)
+    # print(db.select_all(ClientTable))
     db.close_session()
 
 

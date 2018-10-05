@@ -5,40 +5,6 @@
     <title>Async Order</title>
     <!-- Bootstrap core CSS -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-
-    <!-- Custom styles for this template -->
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
-    <script type="text/javascript" charset="utf-8">
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
-        socket.on('connect', function() {
-            socket.emit('my event', {data: 'I\'m connected!'});
-        });
-
-        socket.on('my response', function(msg) {
-            console.log(msg);
-            socket.emit('my table');
-        });
-        socket.on('my pos', function(msg) {
-            console.log(msg);
-            var data = msg['data'];
-            var count = msg['count'];
-            var clients_string = '';
-            console.log(data);
-            console.log(count);
-
-            for (i = 0; i < count; i++) {
-                clients_string += '<tr>';
-                clients_string += '<th scope="row">'+i.toString()+'</th>';
-                clients_string += '<td>'+data[i]["apiKey"]+'</td>';
-                clients_string += '<td>'+data[i]["balance"].toString()+'</td>';
-                clients_string += '<td>'+data[i]["order"]+'</td>';
-                clients_string += '</tr>';
-
-            }
-            $(".client-table-body").html(clients_string);
-            socket.emit('my table');
-        });
-    </script>
   </head>
 
   <body>
@@ -69,8 +35,6 @@
 
     <main role="main" class="container">
       <div class="jumbotron">
-        <h1>Navbar example</h1>
-        <p class="lead">This example is a quick exercise to illustrate how the top-aligned navbar works. As you scroll, this navbar remains in its original position and moves with the rest of the page.</p>
         <a class="btn btn-lg btn-primary create-order like" role="button">Make Order &raquo;</a>
 
         {% from "_formhelpers.html" import render_add_client_field %}
@@ -106,39 +70,43 @@
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function() {
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+            socket.on('connect', function () {
+                socket.emit('my event', {data: 'I\'m connected!'});
+            });
 
-    <script>
-        $(document).ready(function () {
+            socket.on('my response', function (msg) {
+                console.log(msg);
+            });
+            socket.on('my pos', function (msg) {
+                console.log(msg);
+                var data = msg['data'];
+                var count = msg['count'];
+                var clients_string = '';
+                console.log(data);
+                console.log(count);
+
+                for (i = 0; i < count; i++) {
+                    clients_string += '<tr>';
+                    clients_string += '<th scope="row">' + i.toString() + '</th>';
+                    clients_string += '<td>' + data[i]["apiKey"] + '</td>';
+                    clients_string += '<td>' + data[i]["balance"].toString() + '</td>';
+                    clients_string += '<td>' + data[i]["order"] + '</td>';
+                    clients_string += '</tr>';
+
+                }
+                $(".client-table-body").html(clients_string);
+            });
+            $('form.add-client').submit(function (event) {
+                socket.emit('add-client', {data: $('.add-client-form').serialize()});
+             });
             $('.create-order').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
-                var data = {
-                    side: side,
-                };
-                $.ajax({
-                    type: "GET",
-                    url: "/create-order/",
-                    data: data,
-                    dataType: "json",
-                    success: function (data) {
-                        console.log(data);
-                    }
-                })
-            });
-        });
-        $(function() {
-            $('.add-client').click(function() {
-                $.ajax({
-                    url: '/add-client/',
-                    data: $('.add-client-form').serialize(),
-                    type: 'POST',
-                    success: function(response) {
-                        console.log(response);
-                    },
-                    error: function(error) {
-                        console.log(error);
-                    }
-                });
+                socket.emit('create-order', {side: side});
             });
         });
     </script>

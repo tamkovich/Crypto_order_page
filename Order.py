@@ -10,7 +10,8 @@ class Client:
         self.symbol = 'BTC/USD'  # change for your symbol
         self.response = None
         self.balance = None
-        self.side = None  # 'sell' or 'buy'
+        self.side = None         # 'sell' or 'buy'
+        self.failed = False      # 'True' if order not created
 
         self.exchange = ccxt.bitmex({
             'apiKey': apiKey,
@@ -29,11 +30,13 @@ class Client:
 
     async def create_market_order(self, side, amount=1.0):
         response = None
-        self.side = side
         try:
             # Market
             response = await self.exchange.create_order(self.symbol, 'Market', side, amount)
+            self.side = side  # if side still will None it is mean that order didn't create
+            self.failed = False
         except Exception as e:
+            self.failed = True
             print(f'Failed to create order with {self.exchange.id} {type(e).__name__} {str(e)}')
         # await self.exchange.close()
         self.response = response

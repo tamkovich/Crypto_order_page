@@ -44,7 +44,7 @@
                   {{ render_add_client_field(field) }}
               {% endfor %}
           </dl>
-          <button type="button" class="add-client btn btn-primary" data-dismiss="modal">Add Client</button>
+          <button type="submit" class="add-client btn btn-primary" data-dismiss="modal">Add Client</button>
         </form>
 
       </div>
@@ -100,13 +100,15 @@
                 }
                 $(".client-table-body").html(clients_string);
             });
-            $('form.add-client').submit(function (event) {
-                socket.emit('add-client', {data: $('.add-client-form').serialize()});
+            $('.add-client').click(function (e) {
+                socket.emit('add-client', {form: $('.add-client-form').serialize()});
+                return false;
              });
             $('.create-order').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
                 socket.emit('create-order', {side: side});
+                return false;
             });
         });
     </script>

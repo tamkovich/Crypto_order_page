@@ -23,6 +23,12 @@ class ClientModel(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     apiKey = db.Column(db.String(100), unique=True)
     secret = db.Column(db.String(100), unique=True)
+    # balance = db.Column(db.Integer())
+    # symbol = db.Column(db.String(10))
+    # contracts = db.Column(db.Integer())
+    # open = db.Column(db.Integer())
+    # side = db.Column(db.String(5))
+    # liquidation = db.Column(db.Integer())  # не найдено
 
     # method to add new client
     def __init__(self, apiKey, secret):
@@ -30,7 +36,7 @@ class ClientModel(db.Model):
         self.secret = secret
 
 
-clients = []
+# clients = []
 socketio = SocketIO(app, async_mode=None)
 thread_lock = Lock()
 thread = None
@@ -49,18 +55,22 @@ def hello_world():
     return render_template('index.html', async_mode=socketio.async_mode, form=form)
 
 
-def reload_data(do_async=True):
+def reload_data(do_async=True, clients=None):
+    if not clients:
+        clients = []
+        for c in ClientModel.query.all():
+            clients.append(Client(c.apiKey, c.secret))
     count = len(clients)
     data = {}
     if do_async:
-        tasks = [ioloop.create_task(c.get_balance()) for c in clients]
+
+        tasks = [reload_loop.create_task(c.gen_data()) for c in clients]
         wait_tasks = asyncio.wait(tasks)
-        ioloop.run_until_complete(wait_tasks)
+        reload_loop.run_until_complete(wait_tasks)
+        # reload_loop.close()
     for i in range(count):
         data[i] = {}
-        data[i]['apiKey'] = clients[i].apiKey
-        data[i]['balance'] = clients[i].balance if clients[i].balance else 0
-        data[i]['order'] = clients[i].side
+        data[i]['data'] = clients[i].get_table_data()
     return data, count
 
 
@@ -92,18 +102,33 @@ def handle_event(data):
 
 @socketio.on('create-order')
 def create_order(data):
+    clients = []
+    for c in ClientModel.query.all():
+        clients.append(Client(c.apiKey, c.secret))
     side = data['side']
-    tasks = [ioloop.create_task(c.create_market_order(side=side)) for c in clients]
-    tasks.extend([ioloop.create_task(c.get_balance()) for c in clients])
-    wait_tasks = asyncio.wait(tasks)
-    ioloop.run_until_complete(wait_tasks)
-    data, count = reload_data(do_async=False)
+    while True:
+        try:
+            tasks = [reload_loop.create_task(c.create_market_order(side=side)) for c in clients]
+            tasks.extend([reload_loop.create_task(c.gen_data()) for c in clients])
+            wait_tasks = asyncio.wait(tasks)
+            reload_loop.run_until_complete(wait_tasks)
+            break
+        except:
+            print('[create-order] sleep for 3 seconds')
+            socketio.sleep(3)
+    data = {}
+    count = len(clients)
+    for i in range(count):
+        data[i] = {}
+        data[i]['data'] = clients[i].get_table_data()
     socketio.emit('my pos', {'data': data, 'count': count})
-    # ioloop.close()
 
 
 @socketio.on('add-client')
 def add_client(data):
+    clients = []
+    for c in ClientModel.query.all():
+        clients.append(Client(c.apiKey, c.secret))
     apiKey, secret = data['form'].split('&')
     apiKey = apiKey.split('=')[-1]
     secret = secret.split('=')[-1]
@@ -118,7 +143,21 @@ def add_client(data):
             clients.append(client)  # add to back
             db.session.add(ClientModel(client.apiKey, client.secret))
             db.session.commit()
-            data, count = reload_data()
+
+            count = len(clients)
+            data = {}
+            while True:
+                try:
+                    tasks = [reload_loop.create_task(c.gen_data()) for c in clients]
+                    wait_tasks = asyncio.wait(tasks)
+                    reload_loop.run_until_complete(wait_tasks)
+                    break
+                except:
+                    print('[add-client] sleep for 3 seconds')
+                    socketio.sleep(3)
+            for i in range(count):
+                data[i] = {}
+                data[i]['data'] = clients[i].get_table_data()
             socketio.emit('my pos', {'data': data, 'count': count})
             print({'status': 'ok!'})
             return
@@ -130,15 +169,7 @@ def add_client(data):
 
 if __name__ == '__main__':
     app.config['SECRET_KEY'] = '123123abc'
-    res = ClientModel.query.all()
-
-    ioloop = asyncio.get_event_loop()
-    for acc in res:
-        client = Client(
-            acc.apiKey,  # apiKey
-            acc.secret,  # secret
-        )
-        clients.append(client)
+    reload_loop = asyncio.get_event_loop()
     socketio.run(
         app,
         '127.0.0.1',

@@ -92,9 +92,9 @@
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + i.toString() + '</th>';
-                    clients_string += '<td>' + data[i]["apiKey"] + '</td>';
-                    clients_string += '<td>' + data[i]["balance"].toString() + '</td>';
-                    clients_string += '<td>' + data[i]["order"] + '</td>';
+                    clients_string += '<td>' + data[i]['data']["apiKey"] + '</td>';
+                    clients_string += '<td>' + data[i]['data']["balance"].toString() + '</td>';
+                    clients_string += '<td>' + data[i]['data']["side"] + '</td>';
                     clients_string += '</tr>';
 
                 }

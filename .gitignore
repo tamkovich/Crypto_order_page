@@ -113,3 +113,4 @@ dmypy.json
 
 config.json
 config_test.json
+private/

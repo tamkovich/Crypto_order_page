@@ -31,6 +31,11 @@ class PythonSQL:
     def delete(self, table, params):
         delete([])
 
+    def add_column(self, table_name, column):
+        column_name = column.compile(dialect=self.engine.dialect)
+        column_type = column.type.compile(self.engine.dialect)
+        self.engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type), extend_existing=True)
+
 
 def main():
     db = PythonSQL('sqlite:///db.sqlite')

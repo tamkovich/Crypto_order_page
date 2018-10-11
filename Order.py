@@ -70,10 +70,18 @@ class Client:
                 f.write(f'response = {self.response}')
         await self.gen_data()
 
+    async def close_order(self, order_id):
+        # close-order --- socket
+        await self.exchange.cancel_order(order_id, self.symbol)
+        self.current_order = None
+        self.current_order_id = None
+        await self.gen_data()
+
     async def gen_data(self):
         # create-order --- socket
         # add-client --- socket
         # reload-table --- socket
+        # close-order --- socket
         await self.get_current_position()
         await self.exchange.close()
 
@@ -99,6 +107,7 @@ class Client:
         # create-order --- socket
         # add-client --- socket
         # reload-table --- socket
+        # close-order --- socket
         print('here')
         orders = await self.exchange.fetch_orders()
         self.current_order = orders[-1]
@@ -129,11 +138,13 @@ class Client:
         # create-order --- socket
         # add-client --- socket
         # reload-table --- socket
+        # close-order --- socket
         balance = await self.exchange.fetch_balance()
         self.balance = balance['total']['BTC']
 
     async def _check_order(self, order_id, symbol):
         # create-order --- socket
+        # close-order --- socket
         order = None
         for _ in range(self.retry):
             try:

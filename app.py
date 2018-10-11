@@ -140,7 +140,30 @@ def create_order(data):
     for i in range(count):
         data[i] = {}
         data[i]['data'] = update_client_data(clients_db[i], clients[i].get_table_data())
-    socketio.emit('my pos', {'data': data, 'count': count})
+    socketio.emit('reload-table', {'data': data, 'count': count})
+
+
+@socketio.on('close-order')
+def close_order():
+    clients = []
+    clients_db = ClientModel.query.all()
+    for c in clients_db:
+        clients.append(Client(c.apiKey, c.secret))
+    while True:
+        try:
+            tasks = [reload_loop.create_task(c.close_order(order_id=c.current_order_id)) for c in clients]
+            wait_tasks = asyncio.wait(tasks)
+            reload_loop.run_until_complete(wait_tasks)
+            break
+        except:
+            print('[close-order] sleep for 3 seconds')
+            socketio.sleep(3)
+    data = {}
+    count = len(clients)
+    for i in range(count):
+        data[i] = {}
+        data[i]['data'] = update_client_data(clients_db[i], clients[i].get_table_data())
+    socketio.emit('reload-table', {'data': data, 'count': count})
 
 
 @socketio.on('add-client')
@@ -179,7 +202,7 @@ def add_client(data):
             for i in range(count):
                 data[i] = {}
                 data[i]['data'] = update_client_data(clients_db[i], clients[i].get_table_data())
-            socketio.emit('my pos', {'data': data, 'count': count})
+            socketio.emit('reload-table', {'data': data, 'count': count})
             print({'status': 'ok!'})
             return
         print({'status': 'already exists!'})

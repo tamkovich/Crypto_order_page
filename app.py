@@ -7,7 +7,7 @@ from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from threading import Lock
 from forms import ClientForm
-from Order import Client
+from Order import Client, update_client_data
 
 import asyncio
 
@@ -23,17 +23,33 @@ class ClientModel(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     apiKey = db.Column(db.String(100), unique=True)
     secret = db.Column(db.String(100), unique=True)
-    # balance = db.Column(db.Integer())
-    # symbol = db.Column(db.String(10))
-    # contracts = db.Column(db.Integer())
-    # open = db.Column(db.Integer())
-    # side = db.Column(db.String(5))
-    # liquidation = db.Column(db.Integer())  # не найдено
+    balance = db.Column('balance', db.Integer)
+    order_type = db.Column('order_type', db.String(15))
+    symbol = db.Column('symbol', db.String(10))
+    contracts = db.Column('contracts', db.Integer)
+    open = db.Column('open', db.Integer)
+    side = db.Column('side', db.String(10))
+    liquidation = db.Column('liquidation')
+    failed = db.Column('failed', db.Boolean, default=False)
+    current_order_exist = db.Column('current_order_exist', db.Boolean, default=False)
+    current_order_id = db.Column('current_order_id', db.Integer)
 
     # method to add new client
-    def __init__(self, apiKey, secret):
+    def __init__(self, apiKey, secret, balance=0, order_type='null', symbol='BTC/USD',
+                 contracts=0, open=0, side=0, liquidation=0, failed=False,
+                 current_order_exist=False, current_order_id=0):
         self.apiKey = apiKey
         self.secret = secret
+        self.balance = balance
+        self.order_type = order_type
+        self.symbol = symbol
+        self.contracts = contracts
+        self.open = open
+        self.side = side
+        self.liquidation = liquidation
+        self.failed = failed
+        self.current_order_exist = current_order_exist
+        self.current_order_id = current_order_id
 
 
 # clients = []
@@ -55,22 +71,25 @@ def hello_world():
     return render_template('index.html', async_mode=socketio.async_mode, form=form)
 
 
-def reload_data(do_async=True, clients=None):
-    if not clients:
-        clients = []
-        for c in ClientModel.query.all():
-            clients.append(Client(c.apiKey, c.secret))
+def reload_data():
+    clients_db = ClientModel.query.all()
+    clients = []
+    for c in clients_db:
+        clients.append(Client(c.apiKey, c.secret))
     count = len(clients)
     data = {}
-    if do_async:
-
-        tasks = [reload_loop.create_task(c.gen_data()) for c in clients]
-        wait_tasks = asyncio.wait(tasks)
-        reload_loop.run_until_complete(wait_tasks)
-        # reload_loop.close()
+    while True:
+        try:
+            tasks = [reload_loop.create_task(c.gen_data()) for c in clients]
+            wait_tasks = asyncio.wait(tasks)
+            reload_loop.run_until_complete(wait_tasks)
+            break
+        except:
+            print('[gen-data only] sleep for 3 seconds')
+            socketio.sleep(3)
     for i in range(count):
         data[i] = {}
-        data[i]['data'] = clients[i].get_table_data()
+        data[i]['data'] = update_client_data(clients_db[i], clients[i].get_table_data())
     return data, count
 
 
@@ -80,7 +99,7 @@ def background_data():
         print('**run table**')
         data, count = reload_data()
         print(data)
-        socketio.emit('my pos', {'data': data, 'count': count})
+        socketio.emit('reload-table', {'data': data, 'count': count})
         socketio.sleep(30)
 
 
@@ -103,13 +122,13 @@ def handle_event(data):
 @socketio.on('create-order')
 def create_order(data):
     clients = []
-    for c in ClientModel.query.all():
+    clients_db = ClientModel.query.all()
+    for c in clients_db:
         clients.append(Client(c.apiKey, c.secret))
     side = data['side']
     while True:
         try:
             tasks = [reload_loop.create_task(c.create_market_order(side=side)) for c in clients]
-            tasks.extend([reload_loop.create_task(c.gen_data()) for c in clients])
             wait_tasks = asyncio.wait(tasks)
             reload_loop.run_until_complete(wait_tasks)
             break
@@ -120,7 +139,7 @@ def create_order(data):
     count = len(clients)
     for i in range(count):
         data[i] = {}
-        data[i]['data'] = clients[i].get_table_data()
+        data[i]['data'] = update_client_data(clients_db[i], clients[i].get_table_data())
     socketio.emit('my pos', {'data': data, 'count': count})
 
 
@@ -155,9 +174,11 @@ def add_client(data):
                 except:
                     print('[add-client] sleep for 3 seconds')
                     socketio.sleep(3)
+
+            clients_db = ClientModel.query.all()
             for i in range(count):
                 data[i] = {}
-                data[i]['data'] = clients[i].get_table_data()
+                data[i]['data'] = update_client_data(clients_db[i], clients[i].get_table_data())
             socketio.emit('my pos', {'data': data, 'count': count})
             print({'status': 'ok!'})
             return

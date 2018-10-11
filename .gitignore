@@ -113,3 +113,6 @@ dmypy.json
 
 config.json
 config_test.json
+private/
+debug/
+db.sqlite-journal

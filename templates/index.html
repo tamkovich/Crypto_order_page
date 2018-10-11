@@ -9,30 +9,6 @@
 
   <body>
 
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
-      <a class="navbar-brand" href="#">Top navbar</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-Navbar exampletoggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarCollapse">
-        <ul class="navbar-nav mr-auto">
-          <li class="nav-item active">
-            <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link disabled" href="#">Disabled</a>
-          </li>
-        </ul>
-        <form class="form-inline mt-2 mt-md-0">
-          <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
-          <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-        </form>
-      </div>
-    </nav>
-
     <main role="main" class="container">
       <div class="jumbotron">
         <a class="btn btn-lg btn-primary create-order like" role="button">Make Order &raquo;</a>
@@ -49,19 +25,29 @@
 
       </div>
 
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">apiKey</th>
-            <th scope="col">balance</th>
-            <th scope="col">order</th>
-          </tr>
-        </thead>
-        <tbody class="client-table-body">
-        <!--Here will be client data which is getting from socket-->
-        </tbody>
-      </table>
+        <div class="table-responsive-sm">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+{#                <th scope="col">apiKey</th>#}
+                <th scope="col">balance</th>
+                <th scope="col">order type</th>
+                <th scope="col">symbol</th>
+                <th scope="col">contracts</th>
+                <th scope="col">open</th>
+                <th scope="col">side</th>
+{#                <th scope="col">liquidation</th>#}
+                <th scope="col">failed</th>
+                <th scope="col">current_order_exist</th>
+{#                <th scope="col">current_order_id</th>#}
+              </tr>
+            </thead>
+            <tbody class="client-table-body">
+            <!--Here will be client data which is getting from socket-->
+            </tbody>
+          </table>
+        </div>
     </main>
 
 
@@ -81,7 +67,7 @@
             socket.on('my response', function (msg) {
                 console.log(msg);
             });
-            socket.on('my pos', function (msg) {
+            socket.on('reload-table', function (msg) {
                 console.log(msg);
                 var data = msg['data'];
                 var count = msg['count'];
@@ -92,11 +78,17 @@
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + i.toString() + '</th>';
-                    clients_string += '<td>' + data[i]['data']["apiKey"] + '</td>';
+                    {#clients_string += '<td>' + data[i]['data']["apiKey"] + '</td>';#}
                     clients_string += '<td>' + data[i]['data']["balance"].toString() + '</td>';
+                    clients_string += '<td>' + data[i]['data']["order_type"] + '</td>';
+                    clients_string += '<td>' + data[i]['data']["symbol"] + '</td>';
+                    clients_string += '<td>' + data[i]['data']["contracts"].toString() + '</td>';
+                    clients_string += '<td>' + data[i]['data']["open"].toString() + '</td>';
                     clients_string += '<td>' + data[i]['data']["side"] + '</td>';
+                    clients_string += '<td>' + data[i]['data']["failed"] + '</td>';
+                    clients_string += '<td>' + data[i]['data']["current_order_exist"] + '</td>';
+                    {#clients_string += '<td>' + data[i]['data']["current_order_id"] + '</td>';#}
                     clients_string += '</tr>';
-
                 }
                 $(".client-table-body").html(clients_string);
             });

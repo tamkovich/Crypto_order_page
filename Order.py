@@ -16,30 +16,26 @@ class Client:
         'LimitIfTouched': 'LimitIfTouched',  # take profit limit
         'market': 'Market',
     }
+    sides = {'sell': 'buy', 'buy': 'sell'}
     retry = 3
     debug_mode = True
     debug_files_path = 'debug/'
+    test_mode = True
 
-    def __init__(self, apiKey, secret, test_mode=True):
+    def __init__(self, apiKey, secret, failed=False, balance=0, order_id=None, order_exist=None,
+                 amount=0, open=0, side=None, order_type=None):
         self.apiKey = apiKey
         self.secret = secret
-        self.test_mode = test_mode
-        self.symbol = 'BTC/USD'  # change for your symbol
-        self.response = None
-
-        self.failed = False      # 'True' if order not created
-
-        self.current_order = None
-        # править нельзя
-        self.balance = None      # Cash баланс счета (=баланс по закрытым позициям)
-        self.order_type = None  # Market , Limit, Stop
-        self.side = None         # Открытая позиция по счету (символ)
-        self.contracts = None    # Открытая позиция по счету (количество контрактов)
-        self.open = None         # Открытая позиция по счету (цена входа)
-        self.liquidation = None  # Открытая позиция по счету (ликвидационная цена)
-
-        self.current_order_exist = None
-        self.current_order_id = None
+        self.symbol = 'BTC/USD'
+        self.failed = failed
+        self.balance = balance
+        self.order = None
+        self.order_id = order_id
+        self.order_exist = order_exist
+        self.amount = amount
+        self.open = open
+        self.side = side
+        self.order_type = order_type
 
         self.exchange = ccxt.bitmex({
             'apiKey': apiKey,
@@ -50,104 +46,86 @@ class Client:
 
         if self.test_mode:
             if 'test' in self.exchange.urls:
-                self.exchange.urls['api'] = self.exchange.urls['test']  # ←----- switch the base URL to testnet
+                self.exchange.urls['api'] = self.exchange.urls['test']
 
-    async def create_market_order(self, side, amount=1.0):
-        # create-order --- socket
-        response = None
+    async def get_balance(self):
+        balance = await self.exchange.fetch_balance()
+        self.balance = balance["BTC"]["total"]
+        self.order_exist = True if balance["BTC"]["used"] else False
+
+    def _push_order_fields(self):
+        self.amount = self.order.get("amount")
+        self.open = self.order.get("price")
+        self.side = self.order.get("side")
+        self.order_id = self.order.get("id")
+        self.order_type = self.order_types.get(self.order.get("type"))
+
+    def table_data(self):
+        return {
+            "balance": self.balance,
+            "order_type": self.order_type,
+            "symbol": self.symbol,
+            "amount": self.amount,
+            "open": self.open,
+            "side": self.side,
+            "liquidation": None,   # не найдено
+            "failed": self.failed,
+            "order_id": self.order_id,
+            "order_exist": self.order_exist,
+        }
+
+    async def create_market_order(self, side, amount=10.0):
+        order = {}
         try:
-            # Market
-            response = await self.exchange.create_order(self.symbol, 'Market', side, amount)
-            self.side = side
-            self.order_type = 0
+            order = await self.exchange.create_order(self.symbol, 'Market', side, amount)
             self.failed = False
         except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
             self.failed = True
             print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
-        self.response = response
+        self.order = order
         if self.debug_mode:
             with open(f'{self.debug_files_path}create_market_order.txt_{self.apiKey}', 'w') as f:
-                f.write(f'response = {self.response}')
-        await self.gen_data()
-
-    async def gen_data(self):
-        # create-order --- socket
-        # add-client --- socket
-        # reload-table --- socket
-        await self.get_current_position()
+                f.write(f'order = {self.order}')
+        self._push_order_fields()
+        await self.get_balance()
         await self.exchange.close()
 
-    def get_table_data(self):
-        # create-order --- socket
-        # add-client --- socket
-        # reload-table --- socket
-        return {
-            "apiKey": self.apiKey,
-            "balance": self.balance or 0,
-            "order_type": self.order_types.get(self.order_type),
-            "symbol": self.symbol,
-            "contracts": self.contracts or 0,
-            "open": self.open or 0,
-            "side": self.side,
-            "liquidation": self.liquidation or 0,  # не найдено
-            "failed": self.failed,
-            "current_order_exist": self.current_order_exist,
-            "current_order_id": self.current_order_id,
-        }
-
-    async def get_current_position(self):
-        # create-order --- socket
-        # add-client --- socket
-        # reload-table --- socket
-        print('here')
-        orders = await self.exchange.fetch_orders()
-        self.current_order = orders[-1]
-        self.current_order_id = self.current_order['id']
-        await self._check_order(self.current_order_id, self.symbol)
-        self._gen_current_order_data()
+    async def check_order(self):
+        if self.order_exist:
+            order = None
+            for _ in range(self.retry):
+                try:
+                    order = await self.exchange.fetch_order(id=self.order_id, symbol=self.symbol)
+                    break
+                except ccxt.OrderNotFound:
+                    print("Order not found")
+                except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                    print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                except:
+                    print(f'just another problem with {self.exchange.id} ,'
+                          f' order_id = {self.order_id} and symbol = {self.symbol}')
+            self.order = order
+            self._push_order_fields()
+        if self.debug_mode:
+            with open(f'{self.debug_files_path}check_order_{self.apiKey}.txt', 'w') as f:
+                f.write(f'order = {self.order}')
         await self.get_balance()
+        await self.exchange.close()
+
+    async def close_order(self):
+        if self.order_types.get(self.order_type) == 'Market' and self.order_exist:
+            await self.create_market_order(self.sides[self.side], self.amount)
+            self.order["amount"] = 0
+        else:
+            order = await self.exchange.cancel_order(self.order_id, self.symbol)
+        self.order = None
+        self.order_id = None
+        await self.get_balance()
+        await self.exchange.close()
         if self.debug_mode:
-            with open(f'{self.debug_files_path}get_current_position_{self.apiKey}.txt', 'w') as f:
-                f.write(f'current_order = {self.current_order}\n'
-                        f'current_order_id = {self.current_order_id}')
-
-    def _gen_current_order_data(self):
-        # create-order --- socket
-        # add-client --- socket
-        # reload-table --- socket
-        try:
-            self.order_type = self.current_order["type"]
-            self.contracts = self.current_order["amount"]
-            self.open = self.current_order["price"]
-            self.side = self.current_order["side"]
-            self.current_order_id = self.current_order["id"]
-            self.current_order_exist = True
-        except:
-            self.current_order_exist = False
-
-    async def get_balance(self):
-        # create-order --- socket
-        # add-client --- socket
-        # reload-table --- socket
-        balance = await self.exchange.fetch_balance()
-        self.balance = balance['total']['BTC']
-
-    async def _check_order(self, order_id, symbol):
-        # create-order --- socket
-        order = None
-        for _ in range(self.retry):
-            try:
-                order = await self.exchange.fetch_order(id=order_id, symbol=symbol)
-                break
-            except ccxt.OrderNotFound:
-                print("Order not found")
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
-        self.current_order = order
-        if self.debug_mode:
-            with open(f'{self.debug_files_path}_check_order_{self.apiKey}.txt', 'w') as f:
-                f.write(f'current_order = {self.current_order}')
-        return order
+            with open(f'{self.debug_files_path}close_order_{self.apiKey}.txt', 'w') as f:
+                f.write(f'order = {self.order} \n'
+                        f'res = {order}')
 
     @staticmethod
     def check_if_already_exist(clients, new_client):
@@ -174,13 +152,13 @@ def update_client_data(client, data):
         "balance": client.balance,
         "order_type": client.order_type,
         "symbol": client.symbol,
-        "contracts": client.contracts,
+        "amount": client.amount,
         "open": client.open,
         "side": client.side,
         "liquidation": client.liquidation,  # не найдено
         "failed": client.failed,
-        "current_order_exist": client.current_order_exist,
-        "current_order_id": client.current_order_id,
+        "order_exist": client.order_exist,
+        "order_id": client.order_id,
     }
     if _is_field_not_blank(data['balance']):
         client.balance = data['balance']
@@ -191,9 +169,9 @@ def update_client_data(client, data):
     if _is_field_not_blank(data['symbol']):
         client.symbol = data['symbol']
         res['symbol'] = data['symbol']
-    if _is_field_not_blank(data['contracts']):
-        client.contracts = data['contracts']
-        res['contracts'] = data['contracts']
+    if _is_field_not_blank(data['amount']):
+        client.amount = data['amount']
+        res['amount'] = data['amount']
     if _is_field_not_blank(data['open']):
         client.open = data['open']
         res['open'] = data['open']
@@ -206,10 +184,10 @@ def update_client_data(client, data):
     if _is_field_not_blank(data['failed']):
         client.failed = data['failed']
         res['failed'] = data['failed']
-    if _is_field_not_blank(data['current_order_exist']):
-        client.current_order_exist = data['current_order_exist']
-        res['current_order_exist'] = data['current_order_exist']
-    if _is_field_not_blank(data['current_order_id']):
-        client.current_order_id = data['current_order_id']
-        res['current_order_id'] = data['current_order_id']
+    if _is_field_not_blank(data['order_exist']):
+        client.order_exist = data['order_exist']
+        res['order_exist'] = data['order_exist']
+    if _is_field_not_blank(data['order_id']):
+        client.order_id = data['order_id']
+        res['order_id'] = data['order_id']
     return res

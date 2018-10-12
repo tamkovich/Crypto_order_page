@@ -147,37 +147,37 @@
             $('.buy-market').click(function (e) {
                 e.preventDefault();
                 var side = 'buy';
-                socket.emit('create-order', {side: side});
+                socket.emit('create-order', {side: side, type: 'Market'});
                 return false;
             });
             $('.sell-market').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
-                socket.emit('create-order', {side: side});
+                socket.emit('create-order', {side: side, type: 'Market'});
                 return false;
             });
             $('.buy-stop').click(function (e) {
                 e.preventDefault();
                 var side = 'buy';
-                socket.emit('stop', {side: side});
+                socket.emit('stop', {side: side, type: 'Stop'});
                 return false;
             });
             $('.sell-stop').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
-                socket.emit('stop', {side: side});
+                socket.emit('stop', {side: side, type: 'Stop'});
                 return false;
             });
             $('.buy-limit').click(function (e) {
                 e.preventDefault();
                 var side = 'buy';
-                socket.emit('limit', {side: side});
+                socket.emit('limit', {side: side, type: 'Limit'});
                 return false;
             });
             $('.sell-limit').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
-                socket.emit('limit', {side: side});
+                socket.emit('limit', {side: side, type: 'Limit'});
                 return false;
             });
         });

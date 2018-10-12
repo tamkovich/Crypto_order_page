@@ -265,6 +265,93 @@ def add_client(data):
     return
 
 
+@socketio.on('stop')
+def stop(data):
+    print('**stop**')
+    clients = []
+    clients_db = ClientModel.query.all()
+    for c in clients_db:
+        clients.append(Client(
+            apiKey=c.apiKey,
+            secret=c.secret,
+            failed=c.failed,
+            order_id=c.order_id,
+            order_exist=c.order_exist,
+            amount=c.amount,
+            open=c.open,
+            side=c.side,
+            order_type=c.order_type
+        ))
+    side = data['side']
+    while True:
+        try:
+            tasks = []
+            any_not_exist = False
+            for c in clients:
+                if not c.order_exist:
+                    any_not_exist = True
+                    tasks.append(reload_loop.create_task(c.create_stop_order(side=side)))
+            if not any_not_exist:
+                tasks = [reload_loop.create_task(c.check_order()) for c in clients]
+            wait_tasks = asyncio.wait(tasks)
+            reload_loop.run_until_complete(wait_tasks)
+            break
+        except:
+            print('[stop] sleep for 3 seconds')
+            socketio.sleep(3)
+    data = {}
+    count = len(clients)
+    for i in range(count):
+        data[i] = {}
+        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+    db.session.commit()
+    socketio.emit('reload-table', {'data': data, 'count': count})
+
+
+@socketio.on('limit')
+def limit(data):
+    print('**limit**')
+    clients = []
+    clients_db = ClientModel.query.all()
+    for c in clients_db:
+        clients.append(Client(
+            apiKey=c.apiKey,
+            secret=c.secret,
+            failed=c.failed,
+            order_id=c.order_id,
+            order_exist=c.order_exist,
+            amount=c.amount,
+            open=c.open,
+            side=c.side,
+            order_type=c.order_type
+        ))
+    side = data['side']
+    while True:
+        try:
+            tasks = []
+            any_not_exist = False
+            for c in clients:
+                if not c.order_exist:
+                    any_not_exist = True
+                    tasks.append(reload_loop.create_task(c.create_limit_order(side=side, amount=20, price=6000)))
+            if not any_not_exist:
+                tasks = [reload_loop.create_task(c.check_order()) for c in clients]
+            wait_tasks = asyncio.wait(tasks)
+            reload_loop.run_until_complete(wait_tasks)
+            break
+        except Exception as e:
+            print(e)
+            print('[limit] sleep for 3 seconds')
+            socketio.sleep(3)
+    data = {}
+    count = len(clients)
+    for i in range(count):
+        data[i] = {}
+        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+    db.session.commit()
+    socketio.emit('reload-table', {'data': data, 'count': count})
+
+
 if __name__ == '__main__':
     app.config['SECRET_KEY'] = '123123abc'
     reload_loop = asyncio.get_event_loop()

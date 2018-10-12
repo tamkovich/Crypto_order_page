@@ -3,57 +3,92 @@
   <head>
     <meta charset="UTF-8">
     <title>Async Order</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
     <!-- Bootstrap core CSS -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
   </head>
 
   <body>
-
-    <main role="main" class="container">
-      <div class="jumbotron">
-{#        <div class="container">#}
-{#        <a class="btn btn-lg btn-primary create-order" role="button">Make Order &raquo;</a>#}
-{#        <a class="btn btn-lg btn-danger close-order" role="button">Close Order &raquo;</a>#}
-{#        </div>#}
-        <div class="container">
-        <a class="btn btn-lg btn-primary buy-market" role="button">Buy Market Order &raquo;</a>
-        <a class="btn btn-lg btn-danger sell-market" role="button">Sell Market Order &raquo;</a>
+  <div class="container">
+      <div class="row jumbotron">
+        <div class="col">
+            <div class="container">
+            </div>
+            <div class="row">
+              <div class="col-4">
+                <div class="list-group" id="list-tab" role="tablist">
+                  <a class="list-group-item list-group-item-action active market" id="list-home-list" data-toggle="list" href="#list-home" role="tab" aria-controls="home">Market</a>
+                  <a class="list-group-item list-group-item-action stop" id="list-profile-list" data-toggle="list" href="#list-profile" role="tab" aria-controls="profile">Stop</a>
+                  <a class="list-group-item list-group-item-action limit" id="list-messages-list" data-toggle="list" href="#list-messages" role="tab" aria-controls="messages">Limit</a>
+                </div>
+              </div>
+              <div class="col-8">
+                <div class="tab-content" id="nav-tabContent">
+                  <div class="tab-pane fade show active" id="list-home" role="tabpanel" aria-labelledby="list-home-list">
+                    <a class="btn btn-sm btn-primary buy-market" role="button">Buy </a>
+                    <a class="btn btn-sm btn-danger sell-market" role="button">Sell</a>
+                  </div>
+                  <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list">
+                    <a class="btn btn-sm btn-primary buy-stop" role="button">Buy </a>
+                    <a class="btn btn-sm btn-danger sell-stop" role="button">Sell</a>
+                  </div>
+                  <div class="tab-pane fade" id="list-messages" role="tabpanel" aria-labelledby="list-messages-list">
+                    <a class="btn btn-sm btn-primary buy-limit" role="button">Buy </a>
+                    <a class="btn btn-sm btn-danger sell-limit" role="button">Sell</a>
+                  </div>
+                </div>
+              </div>
+            </div>
         </div>
-        {% from "_formhelpers.html" import render_add_client_field %}
-        <form class="add-client-form" method="post" role="form">
-          <dl>
-              {% for field in form %}
-                  {{ render_add_client_field(field) }}
-              {% endfor %}
-          </dl>
-          <button type="submit" class="add-client btn btn-primary" data-dismiss="modal">Add Client</button>
-        </form>
-
+        <div class="col">
+            {% from "_formhelpers.html" import render_add_client_field %}
+            <form class="add-client-form" method="post" role="form">
+              <dl>
+                  {% for field in form %}
+                      {{ render_add_client_field(field) }}
+                  {% endfor %}
+              </dl>
+              <button type="submit" class="add-client btn-sm btn-primary" data-dismiss="modal">Add Client</button>
+            </form>
+        </div>
+        <div class="w-100"></div>
       </div>
+  </div>
 
-        <div class="table-responsive-sm">
-          <table class="table">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">balance</th>
-                <th scope="col">order type</th>
-                <th scope="col">symbol</th>
-                <th scope="col">amount</th>
-                <th scope="col">open</th>
-                <th scope="col">side</th>
-{#                <th scope="col">liquidation</th>#}
-                <th scope="col">failed</th>
-                <th scope="col">order_exist</th>
-              </tr>
-            </thead>
-            <tbody class="client-table-body">
-            <!--Here will be client data which is getting from socket-->
-            </tbody>
-          </table>
-        </div>
-    </main>
+  <div class="table-responsive-sm">
+    <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">balance</th>
+            <th scope="col">order type</th>
+            <th scope="col">symbol</th>
+            <th scope="col">amount</th>
+            <th scope="col">open</th>
+            <th scope="col">side</th>
+        {#                <th scope="col">liquidation</th>#}
+            <th scope="col">failed</th>
+            <th scope="col">order_exist</th>
 
+            {# Buy limit #}
+            <th scope="col">Buy limit order #1 (quantity)</th>
+            <th scope="col">Buy limit order #1 (PRICE)</th>
+            {# Buy STOP #}
+            <th scope="col">Buy STOP order #2 (quantity)</th>
+            <th scope="col">Buy STOP order #2 (PRICE)</th>
+            {# Sell STOP #}
+            <th scope="col">Sell STOP order #3 (quantity)</th>
+            <th scope="col">Sell STOP order #3 (PRICE)</th>
+            {# Sell limit #}
+            <th scope="col">Sell limit order #4 (quantity)</th>
+            <th scope="col">Sell limit order #4 (PRICE)</th>
+          </tr>
+        </thead>
+        <tbody class="client-table-body">
+        <!--Here will be client data which is getting from socket-->
+        </tbody>
+    </table>
+  </div>
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
@@ -119,6 +154,30 @@
                 e.preventDefault();
                 var side = 'sell';
                 socket.emit('create-order', {side: side});
+                return false;
+            });
+            $('.buy-stop').click(function (e) {
+                e.preventDefault();
+                var side = 'buy';
+                socket.emit('stop', {side: side});
+                return false;
+            });
+            $('.sell-stop').click(function (e) {
+                e.preventDefault();
+                var side = 'sell';
+                socket.emit('stop', {side: side});
+                return false;
+            });
+            $('.buy-limit').click(function (e) {
+                e.preventDefault();
+                var side = 'buy';
+                socket.emit('limit', {side: side});
+                return false;
+            });
+            $('.sell-limit').click(function (e) {
+                e.preventDefault();
+                var side = 'sell';
+                socket.emit('limit', {side: side});
                 return false;
             });
         });

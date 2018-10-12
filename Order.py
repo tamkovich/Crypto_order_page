@@ -1,5 +1,7 @@
 import ccxt.async_support as ccxt
 
+round_ = lambda x: round(float(x) * 2) / 2
+
 
 class Client:
 
@@ -82,21 +84,46 @@ class Client:
             "order_exist": self.order_exist,
         }
 
-    async def create_market_order(self, side, amount=10.0):
+    def _debug(self, filename, params={}):
+        if self.debug_mode:
+            with open(f'{self.debug_files_path}{filename}_{self.apiKey}.txt', 'w') as f:
+                for k in params.keys():
+                    f.write(f'{k} = {params[k]}\n')
+
+    async def create_order(self, order_type, side, amount, price=None, params={}):
+        """
+        https://www.bitmex.com/api/explorer/#!/Order/Order_new
+        """
         order = {}
+        price = round_(price) if price else None
         try:
-            order = await self.exchange.create_order(self.symbol, 'Market', side, amount)
+            order = await self.exchange.create_order(
+                symbol=self.symbol,
+                type=order_type,
+                side=side,
+                amount=int(amount),
+                price=price,
+                params=params,
+            )
             self.failed = False
         except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
             self.failed = True
             print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
         self.order = order
-        if self.debug_mode:
-            with open(f'{self.debug_files_path}create_market_order.txt_{self.apiKey}', 'w') as f:
-                f.write(f'order = {self.order}')
         self._push_order_fields()
+        self._debug('create_order.txt', {'order': self.order})
         await self.get_balance()
         await self.exchange.close()
+
+    async def create_market_order(self, side, amount=10.0):
+        await self.create_order('Market', side, amount)
+
+    async def create_stop_order(self, side, amount, stopPx):
+        params = {"stopPx": round_(stopPx)}
+        await self.create_order("Stop", side, amount, params=params)
+
+    async def create_limit_order(self, side, amount, price):
+        await self.create_order("Limit", side, amount, price)
 
     async def check_order(self):
         if self.order_exist:
@@ -114,30 +141,19 @@ class Client:
                           f' order_id = {self.order_id} and symbol = {self.symbol}')
             self.order = order
             self._push_order_fields()
-        if self.debug_mode:
-            with open(f'{self.debug_files_path}check_order_{self.apiKey}.txt', 'w') as f:
-                f.write(f'order = {self.order}')
+        self._debug('check_order.txt', {'order': self.order})
         await self.get_balance()
         await self.exchange.close()
 
     async def close_order(self):
-        if self.order_types.get(self.order_type) == 'Market' and self.order_exist:
-            await self.create_market_order(self.sides[self.side], self.amount)
-            self.order["amount"] = 0
-        else:
-            order = await self.exchange.cancel_order(self.order_id, self.symbol)
+        order = await self.exchange.cancel_order(self.order_id, self.symbol)
         self.order = None
-        self.order_id = None
-        if self.debug_mode:
-            with open(f'{self.debug_files_path}close_order_{self.apiKey}.txt', 'w') as f:
-                f.write(f'order = {self.order} \n'
-                        f'res = {order}')
+        self._debug('close_order.txt', {'order': self.order, 'response': order})
         await self.get_balance()
         await self.exchange.close()
 
     @staticmethod
     def check_if_already_exist(clients, new_client):
-        # add-client --- socket
         for client in clients:
             if client.secret == new_client['secret'] and client.apiKey == new_client['apiKey']:
                 return False

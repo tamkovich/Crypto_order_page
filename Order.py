@@ -62,7 +62,7 @@ class Client:
             self.order_type = 'null'
 
     def _push_order_fields(self):
-        self.amount = abs(self.amount - self.order.get("amount"))
+        self.amount = self.order.get("amount")
         self.open = self.order.get("price")
         self.side = self.order.get("side")
         self.order_id = self.order.get("id")
@@ -128,12 +128,12 @@ class Client:
             order = await self.exchange.cancel_order(self.order_id, self.symbol)
         self.order = None
         self.order_id = None
-        await self.get_balance()
-        await self.exchange.close()
         if self.debug_mode:
             with open(f'{self.debug_files_path}close_order_{self.apiKey}.txt', 'w') as f:
                 f.write(f'order = {self.order} \n'
                         f'res = {order}')
+        await self.get_balance()
+        await self.exchange.close()
 
     @staticmethod
     def check_if_already_exist(clients, new_client):

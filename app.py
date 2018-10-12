@@ -65,7 +65,6 @@ thread = None
 #     db.create_all()
 
 
-
 @app.route('/')
 def hello_world():
     form = ClientForm(request.form)
@@ -89,18 +88,20 @@ def reload_data():
         ))
     count = len(clients)
     data = {}
-    while True:
-        try:
-            tasks = [reload_loop.create_task(c.check_order()) for c in clients]
-            wait_tasks = asyncio.wait(tasks)
-            reload_loop.run_until_complete(wait_tasks)
-            break
-        except:
-            print('[gen-data only] sleep for 3 seconds')
-            socketio.sleep(3)
+    if count:
+        while True:
+            try:
+                tasks = [reload_loop.create_task(c.check_order()) for c in clients]
+                wait_tasks = asyncio.wait(tasks)
+                reload_loop.run_until_complete(wait_tasks)
+                break
+            except:
+                print('[gen-data only] sleep for 3 seconds')
+                socketio.sleep(3)
     for i in range(count):
         data[i] = {}
         data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+    db.session.commit()
     return data, count
 
 
@@ -162,7 +163,7 @@ def create_order(data):
     for i in range(count):
         data[i] = {}
         data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
-        db.session.commit()
+    db.session.commit()
     socketio.emit('reload-table', {'data': data, 'count': count})
 
 
@@ -197,7 +198,7 @@ def close_order():
     for i in range(count):
         data[i] = {}
         data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
-        db.session.commit()
+    db.session.commit()
     socketio.emit('reload-table', {'data': data, 'count': count})
 
 
@@ -247,7 +248,7 @@ def add_client(data):
             for i in range(count):
                 data[i] = {}
                 data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
-                db.session.commit()
+            db.session.commit()
             socketio.emit('reload-table', {'data': data, 'count': count})
             print({'status': 'ok!'})
             return

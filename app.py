@@ -8,12 +8,13 @@ from flask_sqlalchemy import SQLAlchemy
 from threading import Lock
 from forms import ClientForm
 from Order import Client, update_client_data
-
+from db import POSTGRES
 import asyncio
 
 monkey.patch_all()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 db = SQLAlchemy(app)
 
 
@@ -26,13 +27,13 @@ class ClientModel(db.Model):
     balance = db.Column('balance', db.Integer)
     order_type = db.Column('order_type', db.String(15))
     symbol = db.Column('symbol', db.String(10))
-    amount = db.Column('contracts', db.Integer)
+    amount = db.Column('amount', db.Integer)
     open = db.Column('open', db.Integer)
     side = db.Column('side', db.String(10))
-    liquidation = db.Column('liquidation')
+    liquidation = db.Column('liquidation', db.Integer)
     failed = db.Column('failed', db.Boolean, default=False)
-    order_exist = db.Column('current_order_exist', db.Boolean, default=False)
-    order_id = db.Column('current_order_id', db.Integer)
+    order_exist = db.Column('order_exist', db.Boolean, default=False)
+    order_id = db.Column('order_id', db.String(100))
 
     def __init__(self, apiKey, secret, balance=0, order_type='null', symbol='BTC/USD',
                  amount=0, open=0, side=0, liquidation=0, failed=False,
@@ -54,6 +55,14 @@ class ClientModel(db.Model):
 socketio = SocketIO(app, async_mode=None)
 thread_lock = Lock()
 thread = None
+
+
+# @app.before_first_request
+# def first_touch():
+#     c = ClientModel.query.all()[-1]
+#     db.session.delete(c)
+#     db.session.commit()
+#     db.create_all()
 
 
 @app.route('/')
@@ -79,18 +88,20 @@ def reload_data():
         ))
     count = len(clients)
     data = {}
-    while True:
-        try:
-            tasks = [reload_loop.create_task(c.check_order()) for c in clients]
-            wait_tasks = asyncio.wait(tasks)
-            reload_loop.run_until_complete(wait_tasks)
-            break
-        except:
-            print('[gen-data only] sleep for 3 seconds')
-            socketio.sleep(3)
+    if count:
+        while True:
+            try:
+                tasks = [reload_loop.create_task(c.check_order()) for c in clients]
+                wait_tasks = asyncio.wait(tasks)
+                reload_loop.run_until_complete(wait_tasks)
+                break
+            except:
+                print('[gen-data only] sleep for 3 seconds')
+                socketio.sleep(3)
     for i in range(count):
         data[i] = {}
         data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+    db.session.commit()
     return data, count
 
 
@@ -140,7 +151,14 @@ def create_order(data):
     side = data['side']
     while True:
         try:
-            tasks = [reload_loop.create_task(c.create_market_order(side=side)) for c in clients]
+            tasks = []
+            any_not_exist = False
+            for c in clients:
+                if not c.order_exist or c.side != side:
+                    any_not_exist = True
+                    tasks.append(reload_loop.create_task(c.create_market_order(side=side)))
+            if not any_not_exist:
+                tasks = [reload_loop.create_task(c.check_order()) for c in clients]
             wait_tasks = asyncio.wait(tasks)
             reload_loop.run_until_complete(wait_tasks)
             break

@@ -51,7 +51,15 @@ class Client:
     async def get_balance(self):
         balance = await self.exchange.fetch_balance()
         self.balance = balance["BTC"]["total"]
-        self.order_exist = True if balance["BTC"]["used"] else False
+        if balance["BTC"]["used"]:
+            self.order_exist = True
+        else:
+            self.order_exist = False
+            self.amount = 0
+            self.open = 0
+            self.side = 'null'
+            self.order_id = 'null'
+            self.order_type = 'null'
 
     def _push_order_fields(self):
         self.amount = self.order.get("amount")
@@ -120,12 +128,12 @@ class Client:
             order = await self.exchange.cancel_order(self.order_id, self.symbol)
         self.order = None
         self.order_id = None
-        await self.get_balance()
-        await self.exchange.close()
         if self.debug_mode:
             with open(f'{self.debug_files_path}close_order_{self.apiKey}.txt', 'w') as f:
                 f.write(f'order = {self.order} \n'
                         f'res = {order}')
+        await self.get_balance()
+        await self.exchange.close()
 
     @staticmethod
     def check_if_already_exist(clients, new_client):

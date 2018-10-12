@@ -25,16 +25,21 @@
               <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
                   <div class="tab-pane fade show active" id="list-home" role="tabpanel" aria-labelledby="list-home-list">
-                    <a class="btn btn-sm btn-primary buy-market" role="button">Buy </a>
-                    <a class="btn btn-sm btn-danger sell-market" role="button">Sell</a>
+                    <a class="btn btn-sm btn-primary market-order" side-data="buy" role="button">Buy </a>
+                    <a class="btn btn-sm btn-danger market-order" side-data="sell" role="button">Sell</a>
+                    {% from "_formhelpers.html" import order_detail_form %}
+                    {{ order_detail_form('Market') }}
                   </div>
                   <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list">
                     <a class="btn btn-sm btn-primary buy-stop" role="button">Buy </a>
                     <a class="btn btn-sm btn-danger sell-stop" role="button">Sell</a>
+                    <h6>Not Working yet . . .</h6>
                   </div>
                   <div class="tab-pane fade" id="list-messages" role="tabpanel" aria-labelledby="list-messages-list">
-                    <a class="btn btn-sm btn-primary buy-limit" role="button">Buy </a>
-                    <a class="btn btn-sm btn-danger sell-limit" role="button">Sell</a>
+                    <a class="btn btn-sm btn-primary limit-order" role="button" side-data="buy">Buy </a>
+                    <a class="btn btn-sm btn-danger limit-order" role="button" side-data="sell">Sell</a>
+                    {% from "_formhelpers.html" import order_detail_form %}
+                    {{ order_detail_form('Limit') }}
                   </div>
                 </div>
               </div>
@@ -133,27 +138,40 @@
                 socket.emit('add-client', {form: $('.add-client-form').serialize()});
                 return false;
              });
-            $('.create-order').click(function (e) {
+            $('.market-order').click(function (e) {
                 e.preventDefault();
-                var side = 'sell';
-                socket.emit('create-order', {side: side});
-                return false;
-            });
-            $('.close-order').click(function (e) {
-                e.preventDefault();
-                socket.emit('close-order');
+                var side = $(this).attr('side-data');
+                data = {
+                    side: side,
+                    type: 'Market',
+                    price: $('#price-Market').val(),
+                    amount: $('#amount-Market').val(),
+                };
+                socket.emit('market', data);
                 return false;
             });
             $('.buy-market').click(function (e) {
                 e.preventDefault();
                 var side = 'buy';
-                socket.emit('create-order', {side: side, type: 'Market'});
+                data = {
+                    side: side,
+                    type: 'Market',
+                    price: $('#price-Market').val(),
+                    amount: $('#amount-Market').val(),
+                };
+                socket.emit('create-order', data);
                 return false;
             });
             $('.sell-market').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
-                socket.emit('create-order', {side: side, type: 'Market'});
+                data = {
+                    side: side,
+                    type: 'Market',
+                    price: $('#price-Market').val(),
+                    amount: $('#amount-Market').val(),
+                };
+                socket.emit('create-order', data);
                 return false;
             });
             $('.buy-stop').click(function (e) {
@@ -168,16 +186,46 @@
                 socket.emit('stop', {side: side, type: 'Stop'});
                 return false;
             });
+            $('.limit-order').click(function (e) {
+                e.preventDefault();
+                var side = $(this).attr('side-data');
+                data = {
+                    side: side,
+                    type: 'Limit',
+                    price: $('#price-Limit').val(),
+                    amount: $('#amount-Limit').val(),
+                };
+                socket.emit('limit', data);
+                return false;
+            });
             $('.buy-limit').click(function (e) {
                 e.preventDefault();
                 var side = 'buy';
-                socket.emit('limit', {side: side, type: 'Limit'});
+                data = {
+                    side: side,
+                    type: 'Limit',
+                    price: $('#price-Limit').val(),
+                    amount: $('#amount-Limit').val(),
+                };
+                socket.emit('limit', data);
                 return false;
             });
             $('.sell-limit').click(function (e) {
                 e.preventDefault();
                 var side = 'sell';
                 socket.emit('limit', {side: side, type: 'Limit'});
+                data = {
+                    side: side,
+                    type: 'Limit',
+                    price: $('#price-Limit').val(),
+                    amount: $('#amount-Limit').val(),
+                };
+                socket.emit('limit', data);
+                return false;
+            });
+            $('.close-order').click(function (e) {
+                e.preventDefault();
+                socket.emit('close-order');
                 return false;
             });
         });

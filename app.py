@@ -131,9 +131,9 @@ def handle_event(data):
     emit('my response', {'data': 'Connected', 'count': 0})
 
 
-@socketio.on('create-order')
+@socketio.on('market')
 def create_order(data):
-    print('**create-order**')
+    print('**market**')
     clients = []
     clients_db = ClientModel.query.all()
     for c in clients_db:
@@ -148,15 +148,14 @@ def create_order(data):
             side=c.side,
             order_type=c.order_type
         ))
-    side = data['side']
     while True:
         try:
             tasks = []
             any_not_exist = False
             for c in clients:
-                if not c.order_exist or c.side != side:
+                if not c.order_exist or c.side != data['side']:
                     any_not_exist = True
-                    tasks.append(reload_loop.create_task(c.create_market_order(side=side)))
+                    tasks.append(reload_loop.create_task(c.create_market_order(side=data['side'], amount=data['amount'])))
             if not any_not_exist:
                 tasks = [reload_loop.create_task(c.check_order()) for c in clients]
             wait_tasks = asyncio.wait(tasks)
@@ -325,7 +324,7 @@ def limit(data):
             side=c.side,
             order_type=c.order_type
         ))
-    side = data['side']
+    print(data)
     while True:
         try:
             tasks = []
@@ -333,7 +332,7 @@ def limit(data):
             for c in clients:
                 if not c.order_exist:
                     any_not_exist = True
-                    tasks.append(reload_loop.create_task(c.create_limit_order(side=side, amount=20, price=6000)))
+                    tasks.append(reload_loop.create_task(c.create_limit_order(side=data['side'], amount=data['amount'], price=data['price'])))
             if not any_not_exist:
                 tasks = [reload_loop.create_task(c.check_order()) for c in clients]
             wait_tasks = asyncio.wait(tasks)

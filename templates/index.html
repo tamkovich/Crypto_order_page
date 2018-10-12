@@ -31,17 +31,15 @@
             <thead>
               <tr>
                 <th scope="col">#</th>
-{#                <th scope="col">apiKey</th>#}
                 <th scope="col">balance</th>
                 <th scope="col">order type</th>
                 <th scope="col">symbol</th>
-                <th scope="col">contracts</th>
+                <th scope="col">amount</th>
                 <th scope="col">open</th>
                 <th scope="col">side</th>
 {#                <th scope="col">liquidation</th>#}
                 <th scope="col">failed</th>
-                <th scope="col">current_order_exist</th>
-{#                <th scope="col">current_order_id</th>#}
+                <th scope="col">order_exist</th>
               </tr>
             </thead>
             <tbody class="client-table-body">
@@ -79,16 +77,14 @@
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + i.toString() + '</th>';
-                    {#clients_string += '<td>' + data[i]['data']["apiKey"] + '</td>';#}
                     clients_string += '<td>' + data[i]['data']["balance"].toString() + '</td>';
                     clients_string += '<td>' + data[i]['data']["order_type"] + '</td>';
                     clients_string += '<td>' + data[i]['data']["symbol"] + '</td>';
-                    clients_string += '<td>' + data[i]['data']["contracts"].toString() + '</td>';
+                    clients_string += '<td>' + data[i]['data']["amount"].toString() + '</td>';
                     clients_string += '<td>' + data[i]['data']["open"].toString() + '</td>';
                     clients_string += '<td>' + data[i]['data']["side"] + '</td>';
                     clients_string += '<td>' + data[i]['data']["failed"] + '</td>';
-                    clients_string += '<td>' + data[i]['data']["current_order_exist"] + '</td>';
-                    {#clients_string += '<td>' + data[i]['data']["current_order_id"] + '</td>';#}
+                    clients_string += '<td>' + data[i]['data']["order_exist"] + '</td>';
                     clients_string += '</tr>';
                 }
                 $(".client-table-body").html(clients_string);

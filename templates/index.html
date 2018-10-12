@@ -150,30 +150,6 @@
                 socket.emit('market', data);
                 return false;
             });
-            $('.buy-market').click(function (e) {
-                e.preventDefault();
-                var side = 'buy';
-                data = {
-                    side: side,
-                    type: 'Market',
-                    price: $('#price-Market').val(),
-                    amount: $('#amount-Market').val(),
-                };
-                socket.emit('create-order', data);
-                return false;
-            });
-            $('.sell-market').click(function (e) {
-                e.preventDefault();
-                var side = 'sell';
-                data = {
-                    side: side,
-                    type: 'Market',
-                    price: $('#price-Market').val(),
-                    amount: $('#amount-Market').val(),
-                };
-                socket.emit('create-order', data);
-                return false;
-            });
             $('.buy-stop').click(function (e) {
                 e.preventDefault();
                 var side = 'buy';
@@ -189,31 +165,6 @@
             $('.limit-order').click(function (e) {
                 e.preventDefault();
                 var side = $(this).attr('side-data');
-                data = {
-                    side: side,
-                    type: 'Limit',
-                    price: $('#price-Limit').val(),
-                    amount: $('#amount-Limit').val(),
-                };
-                socket.emit('limit', data);
-                return false;
-            });
-            $('.buy-limit').click(function (e) {
-                e.preventDefault();
-                var side = 'buy';
-                data = {
-                    side: side,
-                    type: 'Limit',
-                    price: $('#price-Limit').val(),
-                    amount: $('#amount-Limit').val(),
-                };
-                socket.emit('limit', data);
-                return false;
-            });
-            $('.sell-limit').click(function (e) {
-                e.preventDefault();
-                var side = 'sell';
-                socket.emit('limit', {side: side, type: 'Limit'});
                 data = {
                     side: side,
                     type: 'Limit',

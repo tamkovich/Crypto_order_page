@@ -151,7 +151,14 @@ def create_order(data):
     side = data['side']
     while True:
         try:
-            tasks = [reload_loop.create_task(c.create_market_order(side=side)) for c in clients]
+            tasks = []
+            any_not_exist = False
+            for c in clients:
+                if not c.order_exist or c.side != side:
+                    any_not_exist = True
+                    tasks.append(reload_loop.create_task(c.create_market_order(side=side)))
+            if not any_not_exist:
+                tasks = [reload_loop.create_task(c.check_order()) for c in clients]
             wait_tasks = asyncio.wait(tasks)
             reload_loop.run_until_complete(wait_tasks)
             break

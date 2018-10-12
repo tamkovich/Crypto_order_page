@@ -11,9 +11,14 @@
 
     <main role="main" class="container">
       <div class="jumbotron">
+        <div class="container">
         <a class="btn btn-lg btn-primary create-order" role="button">Make Order &raquo;</a>
         <a class="btn btn-lg btn-danger close-order" role="button">Close Order &raquo;</a>
-
+        </div>
+        <div class="container">
+        <a class="btn btn-lg btn-primary buy-market" role="button">Buy Market Order &raquo;</a>
+        <a class="btn btn-lg btn-danger sell-market" role="button">Sell Market Order &raquo;</a>
+        </div>
         {% from "_formhelpers.html" import render_add_client_field %}
         <form class="add-client-form" method="post" role="form">
           <dl>
@@ -102,6 +107,18 @@
             $('.close-order').click(function (e) {
                 e.preventDefault();
                 socket.emit('close-order');
+                return false;
+            });
+            $('.buy-market').click(function (e) {
+                e.preventDefault();
+                var side = 'buy';
+                socket.emit('create-order', {side: side});
+                return false;
+            });
+            $('.sell-market').click(function (e) {
+                e.preventDefault();
+                var side = 'sell';
+                socket.emit('create-order', {side: side});
                 return false;
             });
         });

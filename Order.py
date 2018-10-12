@@ -51,10 +51,18 @@ class Client:
     async def get_balance(self):
         balance = await self.exchange.fetch_balance()
         self.balance = balance["BTC"]["total"]
-        self.order_exist = True if balance["BTC"]["used"] else False
+        if balance["BTC"]["used"]:
+            self.order_exist = True
+        else:
+            self.order_exist = False
+            self.amount = 0
+            self.open = 0
+            self.side = 'null'
+            self.order_id = 'null'
+            self.order_type = 'null'
 
     def _push_order_fields(self):
-        self.amount = self.order.get("amount")
+        self.amount = abs(self.amount - self.order.get("amount"))
         self.open = self.order.get("price")
         self.side = self.order.get("side")
         self.order_id = self.order.get("id")

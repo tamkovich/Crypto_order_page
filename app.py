@@ -57,12 +57,12 @@ thread_lock = Lock()
 thread = None
 
 
-# @app.before_first_request
-# def first_touch():
-#     c = ClientModel.query.all()[-1]
-#     db.session.delete(c)
-#     db.session.commit()
-#     db.create_all()
+#@app.before_first_request
+#def first_touch():
+#    c = ClientModel.query.all()[-1]
+#    db.session.delete(c)
+#    db.session.commit()
+#    db.create_all()
 
 
 @app.route('/')
@@ -396,4 +396,4 @@ def limit(data):
 if __name__ == '__main__':
     app.config['SECRET_KEY'] = '123123abc'
     reload_loop = asyncio.get_event_loop()
-    socketio.run(app, port=5000)
+    socketio.run(app, '0.0.0.0', 5000)

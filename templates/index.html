@@ -44,6 +44,9 @@
                 </div>
               </div>
             </div>
+            <div id="error-msg">
+            <!--Here will be error data which is getting from socket-->
+            </div>
         </div>
         <div class="col">
             {% from "_formhelpers.html" import render_add_client_field %}
@@ -110,6 +113,16 @@
 
             socket.on('my response', function (msg) {
                 console.log(msg);
+            });
+            socket.on('data error', function (msg) {
+               console.log(msg);
+               var text = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+               text += '<button type="button" class="close" data-dismiss="alert" aria-label="Close">';
+               text += '<span aria-hidden="true">&times;</span>';
+               text += '</button>';
+               text += '<strong>'+msg['income']+'!</strong> '+msg['msg'];
+               text += '</div>';
+               $("#error-msg").html(text);
             });
             socket.on('reload-table', function (msg) {
                 console.log(msg);

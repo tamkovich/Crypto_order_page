@@ -38,7 +38,7 @@ class Client:
         self.open = open
         self.side = side
         self.order_type = order_type
-
+        self.auth = True
         self.exchange = ccxt.bitmex({
             'apiKey': apiKey,
             'secret': secret,
@@ -51,17 +51,27 @@ class Client:
                 self.exchange.urls['api'] = self.exchange.urls['test']
 
     async def get_balance(self):
-        balance = await self.exchange.fetch_balance()
-        self.balance = balance["BTC"]["total"]
-        if balance["BTC"]["used"]:
-            self.order_exist = True
-        else:
-            self.order_exist = False
-            self.amount = 0
-            self.open = 0
-            self.side = 'null'
-            self.order_id = 'null'
-            self.order_type = 'null'
+        balance = None
+        if self.auth:
+            auth = True
+            try:
+                balance = await self.exchange.fetch_balance()
+            except ccxt.AuthenticationError:
+                print(f'Auth error')
+                auth = False
+            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+            self.auth = auth
+            self.balance = balance["BTC"]["total"]
+            if balance["BTC"]["used"]:
+                self.order_exist = True
+            else:
+                self.order_exist = False
+                self.amount = 0
+                self.open = 0
+                self.side = 'null'
+                self.order_id = 'null'
+                self.order_type = 'null'
 
     def _push_order_fields(self):
         self.amount = self.order.get("amount")
@@ -91,24 +101,27 @@ class Client:
                     f.write(f'{k} = {params[k]}\n')
 
     async def create_order(self, order_type, side, amount, price=None, params={}):
-        """
-        https://www.bitmex.com/api/explorer/#!/Order/Order_new
-        """
         order = {}
         price = round_(price) if price else None
-        try:
-            order = await self.exchange.create_order(
-                symbol=self.symbol,
-                type=order_type,
-                side=side,
-                amount=int(amount),
-                price=price,
-                params=params,
-            )
-            self.failed = False
-        except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-            self.failed = True
-            print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+        if self.auth:
+            auth = True
+            try:
+                order = await self.exchange.create_order(
+                    symbol=self.symbol,
+                    type=order_type,
+                    side=side,
+                    amount=int(amount),
+                    price=price,
+                    params=params,
+                )
+                self.failed = False
+            except ccxt.AuthenticationError:
+                print(f'Auth error')
+                auth = False
+            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                self.failed = True
+                print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+            self.auth = auth
         self.order = order
         self._push_order_fields()
         self._debug('create_order.txt', {'order': self.order})
@@ -127,18 +140,21 @@ class Client:
 
     async def check_order(self):
         if self.order_exist:
-            order = None
+            order = {}
+            auth = True
             for _ in range(self.retry):
+                auth = True
                 try:
                     order = await self.exchange.fetch_order(id=self.order_id, symbol=self.symbol)
                     break
                 except ccxt.OrderNotFound:
                     print("Order not found")
+                except ccxt.AuthenticationError:
+                    print(f'Auth error')
+                    auth = False
                 except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                     print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
-                except:
-                    print(f'just another problem with {self.exchange.id} ,'
-                          f' order_id = {self.order_id} and symbol = {self.symbol}')
+            self.auth = auth
             self.order = order
             self._push_order_fields()
         self._debug('check_order.txt', {'order': self.order})
@@ -146,7 +162,15 @@ class Client:
         await self.exchange.close()
 
     async def close_order(self):
-        order = await self.exchange.cancel_order(self.order_id, self.symbol)
+        order = {}
+        if self.auth:
+            auth = True
+            try:
+                order = await self.exchange.cancel_order(self.order_id, self.symbol)
+            except ccxt.AuthenticationError:
+                print(f'Auth error')
+                auth = False
+            self.auth = auth
         self.order = None
         self._debug('close_order.txt', {'order': self.order, 'response': order})
         await self.get_balance()
@@ -160,7 +184,7 @@ class Client:
         return True
 
 
-def _is_field_not_blank(field, filters=''):
+def _is_field_not_blank(field, filters=()):
     b = False
     if field is not None:
         b = True
@@ -215,3 +239,10 @@ def update_client_data(client, data):
         client.order_id = data['order_id']
         res['order_id'] = data['order_id']
     return res
+
+
+def check_for_blank_in_json_by_fields(data, *args):
+    for _key in args:
+        if not _is_field_not_blank(data[_key], ('', 0, '0')):
+            return False, f'Invalid data with field {_key}'
+    return True, None

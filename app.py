@@ -7,7 +7,7 @@ from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from threading import Lock
 from forms import ClientForm
-from Order import Client, update_client_data
+from Order import Client, update_client_data, check_for_blank_in_json_by_fields
 from db import POSTGRES
 import asyncio
 
@@ -98,11 +98,16 @@ def reload_data():
             except:
                 print('[gen-data only] sleep for 3 seconds')
                 socketio.sleep(3)
+    counter = 0
     for i in range(count):
-        data[i] = {}
-        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+        if clients[i].auth:
+            data[counter] = {}
+            data[counter]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+            counter += 1
+        else:
+            db.session.delete(clients_db[i])
     db.session.commit()
-    return data, count
+    return data, counter
 
 
 def background_data():
@@ -134,6 +139,10 @@ def handle_event(data):
 @socketio.on('market')
 def create_order(data):
     print('**market**')
+    run = check_for_blank_in_json_by_fields(data, 'amount')
+    if not run[0]:
+        emit('data error', {'msg': run[1], 'income': 'Market'})
+        return
     clients = []
     clients_db = ClientModel.query.all()
     for c in clients_db:
@@ -166,11 +175,16 @@ def create_order(data):
             socketio.sleep(3)
     data = {}
     count = len(clients)
+    counter = 0
     for i in range(count):
-        data[i] = {}
-        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+        if clients[i].auth:
+            data[counter] = {}
+            data[counter]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+            counter += 1
+        else:
+            db.session.delete(clients_db[i])
     db.session.commit()
-    socketio.emit('reload-table', {'data': data, 'count': count})
+    socketio.emit('reload-table', {'data': data, 'count': counter})
 
 
 @socketio.on('close-order')
@@ -201,34 +215,39 @@ def close_order():
             socketio.sleep(3)
     data = {}
     count = len(clients)
+    counter = 0
     for i in range(count):
-        data[i] = {}
-        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+        if clients[i].auth:
+            data[counter] = {}
+            data[counter]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+            counter += 1
+        else:
+            db.session.delete(clients_db[i])
     db.session.commit()
-    socketio.emit('reload-table', {'data': data, 'count': count})
+    socketio.emit('reload-table', {'data': data, 'count': counter})
 
 
 @socketio.on('add-client')
 def add_client(data):
     print('**add-client**')
-    clients = []
-    for c in ClientModel.query.all():
-        clients.append(Client(
-            apiKey=c.apiKey,
-            secret=c.secret,
-            failed=c.failed,
-            order_id=c.order_id,
-            order_exist=c.order_exist,
-            amount=c.amount,
-            open=c.open,
-            side=c.side,
-            order_type=c.order_type
-        ))
     apiKey, secret = data['form'].split('&')
     apiKey = apiKey.split('=')[-1]
     secret = secret.split('=')[-1]
     form = ClientForm(apiKey=apiKey, secret=secret)
     if form.validate():
+        clients = []
+        for c in ClientModel.query.all():
+            clients.append(Client(
+                apiKey=c.apiKey,
+                secret=c.secret,
+                failed=c.failed,
+                order_id=c.order_id,
+                order_exist=c.order_exist,
+                amount=c.amount,
+                open=c.open,
+                side=c.side,
+                order_type=c.order_type
+            ))
         if Client.check_if_already_exist(clients, {'apiKey': form.apiKey.data, 'secret': form.secret.data}):
             client = Client(
                 form.apiKey.data,
@@ -251,22 +270,32 @@ def add_client(data):
                     socketio.sleep(3)
 
             clients_db = ClientModel.query.all()
+            counter = 0
             for i in range(count):
-                data[i] = {}
-                data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+                if clients[i].auth:
+                    data[counter] = {}
+                    data[counter]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+                    counter += 1
+                else:
+                    db.session.delete(clients_db[i])
             db.session.commit()
-            socketio.emit('reload-table', {'data': data, 'count': count})
+            socketio.emit('reload-table', {'data': data, 'count': counter})
             print({'status': 'ok!'})
             return
+
         print({'status': 'already exists!'})
+        emit('data error', {'msg': 'already exists!', 'income': 'Client'})
         return
     print({'status': 'fail!'})
+    emit('data error', {'msg': 'fail!', 'income': 'Client'})
     return
 
 
 @socketio.on('stop')
 def stop(data):
     print('**stop**')
+    emit('data error', {'msg': 'Not working yet', 'income': 'Stop'})
+    return
     clients = []
     clients_db = ClientModel.query.all()
     for c in clients_db:
@@ -300,16 +329,25 @@ def stop(data):
             socketio.sleep(3)
     data = {}
     count = len(clients)
+    counter = 0
     for i in range(count):
-        data[i] = {}
-        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+        if clients[i].auth:
+            data[counter] = {}
+            data[counter]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+            counter += 1
+        else:
+            db.session.delete(clients_db[i])
     db.session.commit()
-    socketio.emit('reload-table', {'data': data, 'count': count})
+    socketio.emit('reload-table', {'data': data, 'count': counter})
 
 
 @socketio.on('limit')
 def limit(data):
     print('**limit**')
+    run = check_for_blank_in_json_by_fields(data, 'amount', 'price')
+    if not run[0]:
+        emit('data error', {'msg': run[1], 'income': 'Limit'})
+        return
     clients = []
     clients_db = ClientModel.query.all()
     for c in clients_db:
@@ -324,7 +362,6 @@ def limit(data):
             side=c.side,
             order_type=c.order_type
         ))
-    print(data)
     while True:
         try:
             tasks = []
@@ -344,15 +381,19 @@ def limit(data):
             socketio.sleep(3)
     data = {}
     count = len(clients)
+    counter = 0
     for i in range(count):
-        data[i] = {}
-        data[i]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+        if clients[i].auth:
+            data[counter] = {}
+            data[counter]['data'] = update_client_data(clients_db[i], clients[i].table_data())
+            counter += 1
+        else:
+            db.session.delete(clients_db[i])
     db.session.commit()
-    socketio.emit('reload-table', {'data': data, 'count': count})
+    socketio.emit('reload-table', {'data': data, 'count': counter})
 
 
 if __name__ == '__main__':
     app.config['SECRET_KEY'] = '123123abc'
     reload_loop = asyncio.get_event_loop()
-    socketio.run(app, '127.0.0.1', 5000)
-
+    socketio.run(app, port=5000)

@@ -31,9 +31,10 @@
                     {{ order_detail_form('Market') }}
                   </div>
                   <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list">
-                    <a class="btn btn-sm btn-primary buy-stop" role="button">Buy </a>
-                    <a class="btn btn-sm btn-danger sell-stop" role="button">Sell</a>
-                    <h6>Not Working yet . . .</h6>
+                    <a class="btn btn-sm btn-primary stop-order" side-data="buy" role="button">Buy </a>
+                    <a class="btn btn-sm btn-danger stop-order" side-data="sell" role="button">Sell</a>
+                    {% from "_formhelpers.html" import order_detail_form %}
+                    {{ order_detail_form('Stop') }}
                   </div>
                   <div class="tab-pane fade" id="list-messages" role="tabpanel" aria-labelledby="list-messages-list">
                     <a class="btn btn-sm btn-primary limit-order" role="button" side-data="buy">Buy </a>
@@ -163,16 +164,16 @@
                 socket.emit('market', data);
                 return false;
             });
-            $('.buy-stop').click(function (e) {
+            $('.stop-order').click(function (e) {
                 e.preventDefault();
-                var side = 'buy';
-                socket.emit('stop', {side: side, type: 'Stop'});
-                return false;
-            });
-            $('.sell-stop').click(function (e) {
-                e.preventDefault();
-                var side = 'sell';
-                socket.emit('stop', {side: side, type: 'Stop'});
+                var side = $(this).attr('side-data');
+                data = {
+                    side: side,
+                    type: 'Stop',
+                    price: $('#price-Stop').val(),
+                    amount: $('#amount-Stop').val(),
+                };
+                socket.emit('stop', data);
                 return false;
             });
             $('.limit-order').click(function (e) {

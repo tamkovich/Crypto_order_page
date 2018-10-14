@@ -184,7 +184,7 @@ class Client:
         return True
 
 
-def _is_field_not_blank(field, filters=()):
+def _is_field_not_blank(field, *filters):
     b = False
     if field is not None:
         b = True
@@ -243,6 +243,6 @@ def update_client_data(client, data):
 
 def check_for_blank_in_json_by_fields(data, *args):
     for _key in args:
-        if not _is_field_not_blank(data[_key], ('', 0, '0')):
+        if not _is_field_not_blank(data.get(_key), '', 0, '0'):
             return False, f'Invalid data with field {_key}'
     return True, None

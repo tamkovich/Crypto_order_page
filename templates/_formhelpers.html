@@ -10,6 +10,13 @@
     </div>
 {% endmacro %}
 
+{% macro market_order_detail_form(type) %}
+<div class="form-group order-details">
+    <label>Amount</label>
+    <input class="form-control" id="amount-{{ type }}">
+</div>
+{% endmacro %}
+
 {% macro order_detail_form(type) %}
 <div class="form-group order-details">
     <label>Amount</label>

@@ -7,18 +7,15 @@ class Client:
 
     order_types = {
         0: 'Market',
-        1: 'Limit',
-        2: 'Stop',
-        3: 'StopLimit',
-        4: 'LimitIfTouched',  # take profit limit
+        1: 'Stop',
+        2: 'Limit',
         'Market': 'Market',
-        'Limit': 'Limit',
-        'Stop': 'Stop',
-        'StopLimit': 'StopLimit',
-        'LimitIfTouched': 'LimitIfTouched',  # take profit limit
         'market': 'Market',
+        'Stop': 'Stop',
+        'stop': 'Stop',
+        'Limit': 'Limit',
+        'limit': 'Limit',
     }
-    sides = {'sell': 'buy', 'buy': 'sell'}
     retry = 3
     debug_mode = True
     debug_files_path = 'debug/'
@@ -79,6 +76,7 @@ class Client:
         self.side = self.order.get("side")
         self.order_id = self.order.get("id")
         self.order_type = self.order_types.get(self.order.get("type"))
+        print(self.order.get("type"))
 
     def table_data(self):
         return {
@@ -100,7 +98,7 @@ class Client:
                 for k in params.keys():
                     f.write(f'{k} = {params[k]}\n')
 
-    async def create_order(self, order_type, side, amount, price=None, params={}):
+    async def _create_order(self, order_type, side, amount, price=None, params={}):
         order = {}
         price = round_(price) if price else None
         if self.auth:
@@ -124,19 +122,19 @@ class Client:
             self.auth = auth
         self.order = order
         self._push_order_fields()
-        self._debug('create_order.txt', {'order': self.order})
+        self._debug(f'create_{self.order_type}_order', {'order': self.order})
         await self.get_balance()
         await self.exchange.close()
 
     async def create_market_order(self, side, amount=10.0):
-        await self.create_order('Market', side, amount)
+        await self._create_order('Market', side, amount)
 
     async def create_stop_order(self, side, amount, stopPx):
         params = {"stopPx": round_(stopPx)}
-        await self.create_order("Stop", side, amount, params=params)
+        await self._create_order("Stop", side, amount, params=params)
 
     async def create_limit_order(self, side, amount, price):
-        await self.create_order("Limit", side, amount, price)
+        await self._create_order("Limit", side, amount, price)
 
     async def check_order(self):
         if self.order_exist:
@@ -157,11 +155,13 @@ class Client:
             self.auth = auth
             self.order = order
             self._push_order_fields()
-        self._debug('check_order.txt', {'order': self.order})
+        else:
+            self.order = {}
+        self._debug('check_order', {'order': self.order})
         await self.get_balance()
         await self.exchange.close()
 
-    async def close_order(self):
+    async def _close_order(self):
         order = {}
         if self.auth:
             auth = True
@@ -171,8 +171,18 @@ class Client:
                 print(f'Auth error')
                 auth = False
             self.auth = auth
-        self.order = None
-        self._debug('close_order.txt', {'order': self.order, 'response': order})
+        self.order = {}
+        self._debug('_close_order', {'order': self.order, 'response': order})
+
+    async def rm_all_orders(self):
+        orders = await self.exchange.fetch_open_orders(self.symbol)
+        if orders:
+            for order in orders:
+                self.order_id = order['id']
+                await self._close_order()
+        else:
+            self.order = {}
+        self._debug('rm_all_orders', {'order': self.order, 'orders': orders, 'order_exist': self.order_exist})
         await self.get_balance()
         await self.exchange.close()
 

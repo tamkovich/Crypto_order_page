@@ -21,14 +21,18 @@
                   <a class="list-group-item list-group-item-action stop" id="list-profile-list" data-toggle="list" href="#list-profile" role="tab" aria-controls="profile">Stop</a>
                   <a class="list-group-item list-group-item-action limit" id="list-messages-list" data-toggle="list" href="#list-messages" role="tab" aria-controls="messages">Limit</a>
                 </div>
+                <br>
+                <div class="container">
+                   <a class="btn btn-sm btn-warning" id="rm-all-orders" role="button">Rm all orders</a>
+                </div>
               </div>
               <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
                   <div class="tab-pane fade show active" id="list-home" role="tabpanel" aria-labelledby="list-home-list">
                     <a class="btn btn-sm btn-primary market-order" side-data="buy" role="button">Buy </a>
                     <a class="btn btn-sm btn-danger market-order" side-data="sell" role="button">Sell</a>
-                    {% from "_formhelpers.html" import order_detail_form %}
-                    {{ order_detail_form('Market') }}
+                    {% from "_formhelpers.html" import market_order_detail_form %}
+                    {{ market_order_detail_form('Market') }}
                   </div>
                   <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list">
                     <a class="btn btn-sm btn-primary stop-order" side-data="buy" role="button">Buy </a>
@@ -188,9 +192,9 @@
                 socket.emit('limit', data);
                 return false;
             });
-            $('.close-order').click(function (e) {
+            $('#rm-all-orders').click(function (e) {
                 e.preventDefault();
-                socket.emit('close-order');
+                socket.emit('rm-all-orders');
                 return false;
             });
         });

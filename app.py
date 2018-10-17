@@ -171,7 +171,7 @@ def market(data):
             reload_loop.run_until_complete(wait_tasks)
             break
         except:
-            print('[create-order] sleep for 3 seconds')
+            print('[market] sleep for 3 seconds')
             socketio.sleep(3)
     data = {}
     count = len(clients)

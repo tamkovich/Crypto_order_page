@@ -28,7 +28,7 @@ class Client:
         self.symbol = 'BTC/USD'
         self.failed = failed
         self.balance = balance
-        self.order = None
+        self.order = {}
         self.order_id = order_id
         self.order_exist = order_exist
         self.amount = amount
@@ -119,6 +119,9 @@ class Client:
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 self.failed = True
                 print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+            except Exception as e:
+                print(e)
+                self.failed = True
             self.auth = auth
         self.order = order
         self._push_order_fields()

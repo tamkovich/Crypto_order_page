@@ -11,3 +11,10 @@ ClientTable = Table(
     Column('apiKey', String, unique=True),
     Column('secret', String, unique=True)
 )
+
+User = Table(
+    'UserClient', meta,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('username', String),
+    Column('password', String)
+)

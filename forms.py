@@ -7,5 +7,5 @@ class ClientForm(Form):
 
 
 class UserLoginForm(Form):
-    username = StringField('Username', [validators.data_required(), validators.Length(min=4, max=25)])
-    password = PasswordField('Password', [validators.data_required(), validators.Length(min=6, max=200)])
+    username = StringField('username', [validators.data_required(), validators.Length(min=4, max=25)])
+    password = PasswordField('password', [validators.data_required(), validators.Length(min=6, max=200)])

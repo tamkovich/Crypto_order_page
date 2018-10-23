@@ -1,20 +1,20 @@
 from gevent import monkey
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, current_user, logout_user, login_required, UserMixin
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from threading import Lock
 from forms import ClientForm, UserLoginForm
 from Order import Client, update_client_data, check_for_blank_in_json_by_fields
 from db import POSTGRES
+from functools import wraps
 import asyncio
+import gc
 
 monkey.patch_all()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
 %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 db = SQLAlchemy(app)
-login_manager = LoginManager(app)
 
 
 class User(db.Model):
@@ -24,8 +24,8 @@ class User(db.Model):
     password = db.Column(db.String(100), unique=True)
 
 
-db.create_all()
-db.session.commit()
+# db.create_all()
+# db.session.commit()
 
 
 class ClientModel(db.Model):
@@ -74,31 +74,47 @@ thread = None
 #    db.session.commit()
 #    db.create_all()
 
-@login_manager.user_loader
-def load_user(userid):
-    return User.query.get(userid)
+
+def login_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('You have to login first')
+            return redirect(url_for('login'))
+    return wrap
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login/', methods=['GET', 'POST'])
 def login():
-    form = UserLoginForm()
-    if request.method == 'POST':
-        if current_user.is_authenticated:
-            return redirect(url_for('index'))
-        if form.validate():
+    error = ''
+    form = UserLoginForm(request.form)
+    try:
+        if request.method == 'POST':
             user = User.query.filter_by(username=form.username.data).first()
-            if user is None or not user.check_password(form.password.data):
-                flash('Invalid username or password')
-                return redirect(url_for('login'))
-            login_user(user, remember=form.remember_me.data)
-            return redirect(url_for(''))
-    return render_template('login.html', title='Sign In', form=form)
+            if user.password == request.form['password']:
+                session['logged_in'] = True
+                session['username'] = request.form['username']
+
+                flash("You are logged in as {}".format(session['username']))
+                return redirect(url_for(''))
+            else:
+                error = 'Invalid credentials, try again'
+        gc.collect()
+
+        return render_template('login.html', error=error, form=form)
+    except Exception as e:
+        error = 'Invalid credentials, try again'
+        return render_template('login.html', error=error, form=form)
 
 
 @app.route('/logout')
 @login_required
 def logout():
-    logout_user()
+    session.clear()
+    flash('You have been logged out!')
+    gc.collect()
     return redirect(url_for('login'))
 
 

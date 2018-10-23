@@ -22,8 +22,20 @@ def alter_table(table_name):
         db.add_column(table_name, cols[col])
 
 
+def alter_table_user():
+    table_name = 'UserClient'
+    cols = dict()
+    cols['username'] = Column('username', String(100))
+    cols['password'] = Column('password', String(100))
+
+    db = PythonSQL("postgresql://localhost/clients_db")
+    for col in cols.keys():
+        db.add_column(table_name, cols[col])
+
+
 def main():
-    alter_table(table_name='Client')
+    # alter_table(table_name='Client')
+    alter_table_user()
 
 
 if __name__ == '__main__':

@@ -17,20 +17,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
 db = SQLAlchemy(app)
 
 
-class User(db.Model):
-    __tablename__ = 'UserClient'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(100), unique=True)
-    password = db.Column(db.String(100), unique=True)
-
-
-# db.create_all()
-# db.session.commit()
-
-
 class ClientModel(db.Model):
 
-    __tablename__ = 'Client'
+    __tablename__ = 'client'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     apiKey = db.Column(db.String(100), unique=True)
     secret = db.Column(db.String(100), unique=True)
@@ -44,6 +33,8 @@ class ClientModel(db.Model):
     failed = db.Column('failed', db.Boolean, default=False)
     order_exist = db.Column('order_exist', db.Boolean, default=False)
     order_id = db.Column('order_id', db.String(100))
+
+    orders = db.relationship("Order", backref="client", lazy=True)
 
     def __init__(self, apiKey, secret, balance=0, order_type='null', symbol='BTC/USD',
                  amount=0, open=0, side=0, liquidation=0, failed=False,
@@ -60,6 +51,27 @@ class ClientModel(db.Model):
         self.failed = failed
         self.order_exist = order_exist
         self.order_id = order_id
+
+
+class Order(db.Model):
+    __tablename__ = 'order'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order_exchange_id = db.Column(db.String(100))
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+
+    def __init__(self, order_exchange_id):
+        self.order_exchange_id = order_exchange_id
+
+
+class User(db.Model):
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(100), unique=True)
+
+
+# db.create_all()
+# db.session.commit()
 
 
 socketio = SocketIO(app, async_mode=None)
@@ -98,11 +110,10 @@ def login():
                 session['username'] = request.form['username']
 
                 flash("You are logged in as {}".format(session['username']))
-                return redirect(url_for(''))
+                return redirect('/')
             else:
                 error = 'Invalid credentials, try again'
         gc.collect()
-
         return render_template('login.html', error=error, form=form)
     except Exception as e:
         error = 'Invalid credentials, try again'

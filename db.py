@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy import select, delete
 from sqlalchemy.orm import sessionmaker
-from tables import ClientTable, User
+from tables import ClientTable, User, OrderTable
 
 POSTGRES = {
     'user': 'user_name',
@@ -16,14 +16,9 @@ class PythonSQL:
 
     def __init__(self, db_name):
         self.db_name = db_name
-        self.engine = create_engine(
-            db_name,
-            # echo=True
-        )
+        self.engine = create_engine(db_name)
         self.conn = self.engine.connect()
-
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        self.session = sessionmaker(bind=self.engine)()
 
     def close_session(self):
         self.session.close()
@@ -47,9 +42,9 @@ class PythonSQL:
 
 def main():
     db = PythonSQL('postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES)
-    print(db.engine.table_names())
+    # print(db.engine.table_names())
     print(db.select_all(User))
-    config = db.select_all(ClientTable)
+    # config = db.select_all(ClientTable)
     # db.insert(User, {'username': 'trademan', 'password': 'wen234man'})
     # c = config[-1]
     # db.delete(ClientTable, c)

@@ -1,21 +1,31 @@
 from gevent import monkey
-from flask import (
-    Flask, render_template,
-    request
-)
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from threading import Lock
-from forms import ClientForm
+from forms import ClientForm, UserLoginForm
 from Order import Client, update_client_data, check_for_blank_in_json_by_fields
 from db import POSTGRES
+from functools import wraps
 import asyncio
+import gc
 
 monkey.patch_all()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
 %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 db = SQLAlchemy(app)
+
+
+class User(db.Model):
+    __tablename__ = 'UserClient'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(100), unique=True)
+
+
+# db.create_all()
+# db.session.commit()
 
 
 class ClientModel(db.Model):
@@ -65,7 +75,51 @@ thread = None
 #    db.create_all()
 
 
+def login_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('You have to login first')
+            return redirect(url_for('login'))
+    return wrap
+
+
+@app.route('/login/', methods=['GET', 'POST'])
+def login():
+    error = ''
+    form = UserLoginForm(request.form)
+    try:
+        if request.method == 'POST':
+            user = User.query.filter_by(username=form.username.data).first()
+            if user.password == request.form['password']:
+                session['logged_in'] = True
+                session['username'] = request.form['username']
+
+                flash("You are logged in as {}".format(session['username']))
+                return redirect(url_for(''))
+            else:
+                error = 'Invalid credentials, try again'
+        gc.collect()
+
+        return render_template('login.html', error=error, form=form)
+    except Exception as e:
+        error = 'Invalid credentials, try again'
+        return render_template('login.html', error=error, form=form)
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    session.clear()
+    flash('You have been logged out!')
+    gc.collect()
+    return redirect(url_for('login'))
+
+
 @app.route('/')
+@login_required
 def hello_world():
     form = ClientForm(request.form)
     return render_template('index.html', async_mode=socketio.async_mode, form=form)

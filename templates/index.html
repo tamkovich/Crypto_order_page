@@ -79,22 +79,16 @@
             <th scope="col">amount</th>
             <th scope="col">open</th>
             <th scope="col">side</th>
-        {#                <th scope="col">liquidation</th>#}
             <th scope="col">failed</th>
             <th scope="col">order_exist</th>
 
-            {# Buy limit #}
-            <th scope="col">Buy limit order #1 (quantity)</th>
-            <th scope="col">Buy limit order #1 (PRICE)</th>
-            {# Buy STOP #}
-            <th scope="col">Buy STOP order #2 (quantity)</th>
-            <th scope="col">Buy STOP order #2 (PRICE)</th>
-            {# Sell STOP #}
-            <th scope="col">Sell STOP order #3 (quantity)</th>
-            <th scope="col">Sell STOP order #3 (PRICE)</th>
-            {# Sell limit #}
-            <th scope="col">Sell limit order #4 (quantity)</th>
-            <th scope="col">Sell limit order #4 (PRICE)</th>
+            <th scope="col">Limit order #1</th>
+            <th scope="col">Limit order #2</th>
+            <th scope="col">Limit order #3</th>
+
+            <th scope="col">Stop order #1</th>
+            <th scope="col">Stop order #2</th>
+            <th scope="col">Stop order #3</th>
           </tr>
         </thead>
         <tbody class="client-table-body">
@@ -199,5 +193,7 @@
             });
         });
     </script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   </body>
 </html>

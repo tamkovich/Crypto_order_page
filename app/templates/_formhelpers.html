@@ -11,6 +11,8 @@
 {% endmacro %}
 
 {% macro market_order_detail_form(type) %}
+<a class="btn btn-sm btn-primary order" role="button" side-data="buy" order-type="{{ type }}">Buy </a>
+<a class="btn btn-sm btn-danger order" role="button" side-data="sell" order-type="{{ type }}">Sell</a>
 <div class="form-group order-details">
     <label>Amount</label>
     <input class="form-control" id="amount-{{ type }}">
@@ -18,6 +20,8 @@
 {% endmacro %}
 
 {% macro order_detail_form(type) %}
+<a class="btn btn-sm btn-primary order" role="button" side-data="buy" order-type="{{ type }}">Buy </a>
+<a class="btn btn-sm btn-danger order" role="button" side-data="sell" order-type="{{ type }}">Sell</a>
 <div class="form-group order-details">
     <label>Amount</label>
     <input class="form-control" id="amount-{{ type }}">

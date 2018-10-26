@@ -1,4 +1,4 @@
-from mvc.app import db
+from app import db
 
 
 class ClientModel(db.Model):
@@ -18,7 +18,7 @@ class ClientModel(db.Model):
     order_exist = db.Column('order_exist', db.Boolean, default=False)
     order_id = db.Column('order_id', db.String(100))
 
-    orders = db.relationship("Order", backref="client", lazy=True)
+    orders = db.relationship("OrderModel", backref="client", lazy=True)
 
     def __init__(self, apiKey, secret, balance=0, order_type='null', symbol='BTC/USD',
                  amount=0, open=0, side=0, liquidation=0, failed=False,
@@ -37,17 +37,18 @@ class ClientModel(db.Model):
         self.order_id = order_id
 
 
-class Order(db.Model):
+class OrderModel(db.Model):
     __tablename__ = 'order'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     order_exchange_id = db.Column(db.String(100))
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
 
-    def __init__(self, order_exchange_id):
+    def __init__(self, order_exchange_id, client_id):
         self.order_exchange_id = order_exchange_id
+        self.client_id = client_id
 
 
-class User(db.Model):
+class UserModel(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(100), unique=True)

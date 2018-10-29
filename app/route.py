@@ -6,11 +6,15 @@ import gc
 
 from app.models import UserModel
 from app.forms import UserLoginForm, ClientForm
-from app import app, socketio
+from app import app, socketio, db
 
 from bmex import check_for_blank_in_json_by_fields
 
 from BmexIhar.views import TableIhar
+
+#admin = UserModel('trademan', 'wen234man')
+#db.session.add(admin)
+#db.session.commit()
 
 thread_lock = Lock()
 table = TableIhar()

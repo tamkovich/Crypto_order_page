@@ -29,20 +29,14 @@
               <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
                   <div class="tab-pane fade show active" id="list-home" role="tabpanel" aria-labelledby="list-home-list">
-                    <a class="btn btn-sm btn-primary market-order" side-data="buy" role="button">Buy </a>
-                    <a class="btn btn-sm btn-danger market-order" side-data="sell" role="button">Sell</a>
                     {% from "_formhelpers.html" import market_order_detail_form %}
                     {{ market_order_detail_form('Market') }}
                   </div>
                   <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list">
-                    <a class="btn btn-sm btn-primary stop-order" side-data="buy" role="button">Buy </a>
-                    <a class="btn btn-sm btn-danger stop-order" side-data="sell" role="button">Sell</a>
                     {% from "_formhelpers.html" import order_detail_form %}
                     {{ order_detail_form('Stop') }}
                   </div>
                   <div class="tab-pane fade" id="list-messages" role="tabpanel" aria-labelledby="list-messages-list">
-                    <a class="btn btn-sm btn-primary limit-order" role="button" side-data="buy">Buy </a>
-                    <a class="btn btn-sm btn-danger limit-order" role="button" side-data="sell">Sell</a>
                     {% from "_formhelpers.html" import order_detail_form %}
                     {{ order_detail_form('Limit') }}
                   </div>
@@ -74,27 +68,14 @@
           <tr>
             <th scope="col">#</th>
             <th scope="col">balance</th>
-            <th scope="col">order type</th>
-            <th scope="col">symbol</th>
-            <th scope="col">amount</th>
-            <th scope="col">open</th>
-            <th scope="col">side</th>
-        {#                <th scope="col">liquidation</th>#}
-            <th scope="col">failed</th>
-            <th scope="col">order_exist</th>
 
-            {# Buy limit #}
-            <th scope="col">Buy limit order #1 (quantity)</th>
-            <th scope="col">Buy limit order #1 (PRICE)</th>
-            {# Buy STOP #}
-            <th scope="col">Buy STOP order #2 (quantity)</th>
-            <th scope="col">Buy STOP order #2 (PRICE)</th>
-            {# Sell STOP #}
-            <th scope="col">Sell STOP order #3 (quantity)</th>
-            <th scope="col">Sell STOP order #3 (PRICE)</th>
-            {# Sell limit #}
-            <th scope="col">Sell limit order #4 (quantity)</th>
-            <th scope="col">Sell limit order #4 (PRICE)</th>
+            <th scope="col">Limit order #1</th>
+            <th scope="col">Limit order #2</th>
+            <th scope="col">Limit order #3</th>
+
+            <th scope="col">Stop order #1</th>
+            <th scope="col">Stop order #2</th>
+            <th scope="col">Stop order #3</th>
           </tr>
         </thead>
         <tbody class="client-table-body">
@@ -107,7 +88,8 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="../static/js/bootstrap.bundle.min.js"></script>
+{#    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>#}
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
         $(document).ready(function() {
@@ -133,63 +115,61 @@
                 console.log(msg);
                 var data = msg['data'];
                 var count = msg['count'];
+                var balance = msg['balance'];
                 var clients_string = '';
+                var tit = '';
                 console.log(data);
                 console.log(count);
 
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + i.toString() + '</th>';
-                    clients_string += '<td>' + data[i]['data']["balance"].toString() + '</td>';
-                    clients_string += '<td>' + data[i]['data']["order_type"] + '</td>';
-                    clients_string += '<td>' + data[i]['data']["symbol"] + '</td>';
-                    clients_string += '<td>' + data[i]['data']["amount"].toString() + '</td>';
-                    clients_string += '<td>' + data[i]['data']["open"].toString() + '</td>';
-                    clients_string += '<td>' + data[i]['data']["side"] + '</td>';
-                    clients_string += '<td>' + data[i]['data']["failed"] + '</td>';
-                    clients_string += '<td>' + data[i]['data']["order_exist"] + '</td>';
+                    clients_string += '<td>' + data[i]["balance"].toString() + '</td>';
+                    for (j = 0; j<data[i]["limits"].length; j++){
+                        tit = '';
+                        tit += data[i]["limits"][j]["side"] + ' | ';
+                        tit += data[i]["limits"][j]["price"] + ' | ';
+                        tit += data[i]["limits"][j]["amount"];
+                        clients_string += '<td>' + tit + '</td>';
+                    }
+                    for (j = 0; j<data[i]["stops"].length; j++){
+                        tit = '';
+                        tit += data[i]["stops"][j]["side"] + ' | ';
+                        tit += data[i]["stops"][j]["price"] + ' | ';
+                        tit += data[i]["stops"][j]["amount"];
+                        clients_string += '<td>' + tit + '</td>';
+                    }
                     clients_string += '</tr>';
                 }
+                clients_string += '<tr>';
+                clients_string += '<th scope="row">:</th>';
+                clients_string += '<th scope="row">' + balance.toString() + '</th>';
+                clients_string += '</tr>';
+
                 $(".client-table-body").html(clients_string);
             });
             $('.add-client').click(function (e) {
                 socket.emit('add-client', {form: $('.add-client-form').serialize()});
                 return false;
-             });
-            $('.market-order').click(function (e) {
-                e.preventDefault();
-                var side = $(this).attr('side-data');
-                data = {
-                    side: side,
-                    type: 'Market',
-                    price: $('#price-Market').val(),
-                    amount: $('#amount-Market').val(),
-                };
-                socket.emit('market', data);
-                return false;
             });
-            $('.stop-order').click(function (e) {
+            $('.order').click(function (e) {
                 e.preventDefault();
                 var side = $(this).attr('side-data');
+                var order_type = $(this).attr('order-type');
+                console.log(order_type);
+                var price = 0;
+                if (order_type == 'Market') {
+                    price = null;
+                } else {
+                    price = $('#price-'+order_type).val();
+                }
                 data = {
                     side: side,
-                    type: 'Stop',
-                    price: $('#price-Stop').val(),
-                    amount: $('#amount-Stop').val(),
+                    type: order_type,
+                    price: price,
+                    amount: $('#amount-'+order_type).val(),
                 };
-                socket.emit('stop', data);
-                return false;
-            });
-            $('.limit-order').click(function (e) {
-                e.preventDefault();
-                var side = $(this).attr('side-data');
-                data = {
-                    side: side,
-                    type: 'Limit',
-                    price: $('#price-Limit').val(),
-                    amount: $('#amount-Limit').val(),
-                };
-                socket.emit('limit', data);
+                socket.emit('order', data);
                 return false;
             });
             $('#rm-all-orders').click(function (e) {

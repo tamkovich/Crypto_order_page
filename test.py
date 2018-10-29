@@ -1,51 +1,40 @@
-from Order import Client
-import asyncio
-import json
+from app import app
+from BmexIhar.views import TableIhar
 
-
-def read_config():
-    with open('private/config_test.json', 'r') as f:
-        return json.load(f)
-
-
-def push_config(res):
-    with open('private/config_test.json', 'w') as f:
-        json.dump(res, f)
+table = TableIhar()
 
 
 def test_create_market_order():
-    res = read_config()
-    clients = []
-    for acc in res['bitmex']:
-        clients.append(Client(acc['apiKey'], acc['secret']))
-    ioloop = asyncio.get_event_loop()
-    tasks = [ioloop.create_task(c.create_market_order('sell', 200)) for c in clients]
-    wait_tasks = asyncio.wait(tasks)
-    ioloop.run_until_complete(wait_tasks)
-    ioloop.close()
-    for i in range(len(res)):
-        print(clients[i].order)
-        res['bitmex'][i]['order'] = clients[i].order
-
-    push_config(res)
+    table.add_order(type='Market', side='Sell', amount=10)
 
 
-def test_auth():
-    c = Client('key', 'secret', order_id=4, order_exist=True)
-    ioloop = asyncio.get_event_loop()
-    tasks = [ioloop.create_task(c.check_order())]
-    wait_tasks = asyncio.wait(tasks)
-    ioloop.run_until_complete(wait_tasks)
-    ioloop.close()
-    print('And still')
-    print(c.auth)
+def test_create_limit_order():
+    table.add_order(type='Limit', side='Buy', amount=10, price=6390)
 
 
-def test_check_for_blank_in_json_by_fields(data, *args):
-    print(args)
-    print(data)
+def test_create_stop_order():
+    table.add_order(type='Stop', side='Buy', amount=10, price=6390)
+
+
+def test_rm_all_orders():
+    table.close_all_orders()
+
+
+def test_add_client():
+    key = 'B8BKl9xDOWNKHfZnl2ikISuW'
+    secret = '4omaSxBZnfL5jn3SWHXF5aPpvjSxqI8SZY8VT-eFoTrvbBn8'
+    table.add_client(key, secret)
+
+
+def test_update_table():
+    table.update_all()
+    table.view()
+    print(table.table_data)
 
 
 if __name__ == '__main__':
-    test_check_for_blank_in_json_by_fields({'side': 'buy', 'amount': 1, 'price': 1}, 'amount', 'price')
-
+    # test_create_stop_order()
+    test_create_limit_order()
+    # test_create_market_order()
+    # test_rm_all_orders()
+    test_update_table()

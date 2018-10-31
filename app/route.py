@@ -6,18 +6,18 @@ import gc
 
 from app.models import UserModel
 from app.forms import UserLoginForm, ClientForm
-from app import app, socketio, db
+from app import app, socketio
 
 from bmex import check_for_blank_in_json_by_fields
 
 from BmexIhar.views import TableIhar
 
-#admin = UserModel('trademan', 'wen234man')
-#db.session.add(admin)
-#db.session.commit()
+# admin = UserModel('trademan', 'wen234man')
+# db.session.add(admin)
+# db.session.commit()
 
 thread_lock = Lock()
-table = TableIhar()
+table = None
 thread = None
 
 
@@ -30,6 +30,12 @@ def login_required(f):
             flash('You have to login first')
             return redirect(url_for('login'))
     return wrap
+
+
+@app.before_first_request
+def before_first_request():
+    global table
+    table = TableIhar()
 
 
 @app.route('/login/', methods=['GET', 'POST'])
@@ -72,13 +78,12 @@ def hello_world():
 
 def background_data():
     while True:
-        socketio.sleep(30)
         print('**run table**')
         table.update_all()
         table.view()
         data = table.table_data
         socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
-        socketio.sleep(30)
+        socketio.sleep(45)
 
 
 @socketio.on('connect')

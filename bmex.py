@@ -5,17 +5,6 @@ round_ = lambda x: round(float(x) * 2) / 2
 
 class BmexClient:
 
-    order_types = {
-        0: 'Market',
-        1: 'Stop',
-        2: 'Limit',
-        'Market': 'Market',
-        'market': 'Market',
-        'Stop': 'Stop',
-        'stop': 'Stop',
-        'Limit': 'Limit',
-        'limit': 'Limit',
-    }
     retry = 3
     debug_mode = True
     debug_files_path = 'debug/'
@@ -92,11 +81,18 @@ class BmexClient:
         self.load_exchange()
         assert type in ['Stop', 'Market', 'Limit'], 'There is no such order-type. ' \
                                                     'Valid order types: [Stop, Market, Limit]'
-        if type == 'Stop':
-            params = {"stopPx": round_(price)}
-            await self._create_order(type, side, amount, params=params)
-        else:
+        if type == 'Market':
             await self._create_order(type, side, amount, price)
+        else:
+            params = {}
+            if type == 'Stop':
+                params = {"stopPx": round_(price)}
+                price = None
+            # elif type == 'Limit':
+            #     params = {"execInst": "LastPrice"}
+                # params["execInst"] = "LastPrice"
+            await self._create_order(type, side, amount, price, params=params)
+
         await self.exchange.close()
 
     async def _close_order(self, order_id: str):

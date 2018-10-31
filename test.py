@@ -1,4 +1,3 @@
-from app import app
 from BmexIhar.views import TableIhar
 
 table = TableIhar()
@@ -9,7 +8,7 @@ def test_create_market_order():
 
 
 def test_create_limit_order():
-    table.add_order(type='Limit', side='Buy', amount=10, price=6390)
+    table.add_order(type='Limit', side='Buy', amount=10, price=6200)
 
 
 def test_create_stop_order():
@@ -34,7 +33,7 @@ def test_update_table():
 
 if __name__ == '__main__':
     # test_create_stop_order()
-    test_create_limit_order()
+    # test_create_limit_order()
     # test_create_market_order()
     # test_rm_all_orders()
     test_update_table()

@@ -20,9 +20,9 @@ class OrderBmex(Order):
 class ClientBmex(Client):
 
     def create_order(self):
-        order = OrderModel(self.api.order['id'], self.client_object.id)
-        self.client_object.orders.append(order)
-        db.session.add(self.client_object)
+
+        order = OrderModel(order_exchange_id=self.api.order['id'], client=self.client_object)
+        db.session.add(order)
         db.session.commit()
         self.orders.append(OrderBmex(order))
 

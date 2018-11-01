@@ -6,7 +6,7 @@ import gc
 
 from app.models import UserModel
 from app.forms import UserLoginForm, ClientForm
-from app import app, socketio
+from app import app, socketio, sentry
 
 from bmex import check_for_blank_in_json_by_fields
 
@@ -78,7 +78,8 @@ def hello_world():
 
 def background_data():
     while True:
-        print('**run table**')
+        # too much events, so I don't use as alert
+        # sentry.captureMessage('**run table**')
         table.update_all()
         table.view()
         data = table.table_data
@@ -88,7 +89,7 @@ def background_data():
 
 @socketio.on('connect')
 def test_connect():
-    print('connected')
+    sentry.captureMessage('connected')
     global thread
     with thread_lock:
         if thread is None:
@@ -98,13 +99,13 @@ def test_connect():
 
 @socketio.on('my event')
 def handle_event(data):
-    print('received json: ' + str(data))
+    sentry.captureMessage('received json: ' + str(data))
     emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('order')
 def order(data):
-    print(f'**{data["type"]}**')
+    sentry.captureMessage(f'**{data}**')
     run = check_for_blank_in_json_by_fields(data, 'amount')
     if not run[0]:
         emit('data error', {'msg': run[1], 'income': data['type']})
@@ -116,7 +117,7 @@ def order(data):
 
 @socketio.on('add-client')
 def add_client(data):
-    print('**add-client**')
+    sentry.captureMessage('**add-client**')
     key, secret = data['form'].split('&')
     key = key.split('=')[-1]
     secret = secret.split('=')[-1]
@@ -131,19 +132,19 @@ def add_client(data):
             table.view()
             data = table.table_data
             socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
-            print({'status': 'ok!'})
+            sentry.captureMessage({'status': 'ok!'})
             return
-        print({'status': 'already exists!'})
+        sentry.captureMessage({'status': 'already exists!'})
         emit('data error', {'msg': 'already exists!', 'income': 'Client'})
         return
-    print({'status': 'fail!'})
+    sentry.captureMessage({'status': 'fail! to create user'})
     emit('data error', {'msg': 'fail!', 'income': 'Client'})
     return
 
 
 @socketio.on('rm-all-orders')
 def rm_all_orders():
-    print('**rm-all-orders**')
+    sentry.captureMessage('**rm-all-orders**')
     table.close_all_orders()
     table.update_all()
     table.view()

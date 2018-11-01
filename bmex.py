@@ -1,6 +1,8 @@
 import ccxt.async_support as ccxt
 import asyncio
 
+from app import sentry
+
 round_ = lambda x: round(float(x) * 2) / 2
 
 
@@ -42,10 +44,10 @@ class BmexClient:
                 balance = await self.exchange.fetch_balance()
                 break
             except ccxt.AuthenticationError:
-                print(f'Auth error')
+                sentry.captureMessage(f'Auth error')
                 await asyncio.sleep(0.5)
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                sentry.captureMessage(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
                 await asyncio.sleep(0.5)
         self.balance = balance["BTC"]["total"]
         await self.exchange.close()
@@ -72,13 +74,13 @@ class BmexClient:
                 self.failed = False
                 break
             except ccxt.AuthenticationError:
-                print(f'Auth error')
+                sentry.captureMessage(f'Auth error')
                 await asyncio.sleep(0.5)
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                sentry.captureMessage(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
                 await asyncio.sleep(0.5)
             except Exception as e:
-                print(e)
+                sentry.captureException(e)
                 await asyncio.sleep(0.5)
         self.order = order
         self._debug(f'create_{self.order.get("type")}_order', {'order': self.order})
@@ -119,16 +121,16 @@ class BmexClient:
                 orders = await self.exchange.fetch_open_orders(self.symbol)
                 break
             except ccxt.OrderNotFound:
-                print("Order not found")
+                sentry.captureMessage("Order not found")
                 await asyncio.sleep(0.5)
             except ccxt.AuthenticationError:
-                print(f'Auth error')
+                sentry.captureMessage(f'Auth error')
                 await asyncio.sleep(0.5)
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                sentry.captureMessage(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
                 await asyncio.sleep(0.5)
             except Exception as _ex:
-                print(f'Something goes wrong with {order_id}')
+                sentry.captureMessage(f'Something goes wrong with {order_id}')
                 await asyncio.sleep(0.5)
         for order in orders:
             if order['id'] in orders_ids:
@@ -141,7 +143,7 @@ class BmexClient:
         try:
             order = await self.exchange.cancel_order(order_id, self.symbol)
         except ccxt.AuthenticationError:
-            print(f'Auth error')
+            sentry.captureMessage(f'Auth error')
         self.order = {}
         self._debug('_close_order', {'order': self.order, 'response': order})
 

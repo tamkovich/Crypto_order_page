@@ -1,4 +1,5 @@
 import ccxt.async_support as ccxt
+import asyncio
 
 round_ = lambda x: round(float(x) * 2) / 2
 
@@ -42,8 +43,10 @@ class BmexClient:
                 break
             except ccxt.AuthenticationError:
                 print(f'Auth error')
+                await asyncio.sleep(0.5)
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                await asyncio.sleep(0.5)
         self.balance = balance["BTC"]["total"]
         await self.exchange.close()
 
@@ -56,24 +59,27 @@ class BmexClient:
     async def _create_order(self, order_type, side, amount, price=None, params={}):
         order = {}
         price = round_(price) if price else None
-        try:
-            order = await self.exchange.create_order(
-                symbol=self.symbol,
-                type=order_type,
-                side=side,
-                amount=int(amount),
-                price=price,
-                params=params,
-            )
-            self.failed = False
-        except ccxt.AuthenticationError:
-            print(f'Auth error')
-        except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-            self.failed = True
-            print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
-        except Exception as e:
-            print(e)
-            self.failed = True
+        for _ in range(self.retry):
+            try:
+                order = await self.exchange.create_order(
+                    symbol=self.symbol,
+                    type=order_type,
+                    side=side,
+                    amount=int(amount),
+                    price=price,
+                    params=params,
+                )
+                self.failed = False
+                break
+            except ccxt.AuthenticationError:
+                print(f'Auth error')
+                await asyncio.sleep(0.5)
+            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                print(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                print(e)
+                await asyncio.sleep(0.5)
         self.order = order
         self._debug(f'create_{self.order.get("type")}_order', {'order': self.order})
 
@@ -86,23 +92,11 @@ class BmexClient:
         else:
             params = {}
             if type == 'Stop':
-                params = {"stopPx": round_(price)}
+                params = {"stopPx": round_(price), "execInst": "LastPrice"}
                 price = None
-            # elif type == 'Limit':
-            #     params = {"execInst": "LastPrice"}
-                # params["execInst"] = "LastPrice"
             await self._create_order(type, side, amount, price, params=params)
 
         await self.exchange.close()
-
-    async def _close_order(self, order_id: str):
-        order = {}
-        try:
-            order = await self.exchange.cancel_order(order_id, self.symbol)
-        except ccxt.AuthenticationError:
-            print(f'Auth error')
-        self.order = {}
-        self._debug('_close_order', {'order': self.order, 'response': order})
 
     async def rm_all_orders(self):
         self.load_exchange()
@@ -123,19 +117,33 @@ class BmexClient:
         for _ in range(self.retry):
             try:
                 orders = await self.exchange.fetch_open_orders(self.symbol)
+                break
             except ccxt.OrderNotFound:
                 print("Order not found")
+                await asyncio.sleep(0.5)
             except ccxt.AuthenticationError:
                 print(f'Auth error')
+                await asyncio.sleep(0.5)
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 print(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
+                await asyncio.sleep(0.5)
             except Exception as _ex:
                 print(f'Something goes wrong with {order_id}')
+                await asyncio.sleep(0.5)
         for order in orders:
             if order['id'] in orders_ids:
                 self.orders[order['id']] = order
         assert len(self.orders) == len(orders_ids), 'Length of orders you have not the same as in exchange'
         await self.exchange.close()
+
+    async def _close_order(self, order_id: str):
+        order = {}
+        try:
+            order = await self.exchange.cancel_order(order_id, self.symbol)
+        except ccxt.AuthenticationError:
+            print(f'Auth error')
+        self.order = {}
+        self._debug('_close_order', {'order': self.order, 'response': order})
 
 
 def _is_field_not_blank(field, *filters):

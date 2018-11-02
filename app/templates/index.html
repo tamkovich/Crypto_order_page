@@ -99,10 +99,9 @@
             });
 
             socket.on('my response', function (msg) {
-                console.log(msg);
+                //
             });
             socket.on('data error', function (msg) {
-               console.log(msg);
                var text = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
                text += '<button type="button" class="close" data-dismiss="alert" aria-label="Close">';
                text += '<span aria-hidden="true">&times;</span>';
@@ -112,14 +111,11 @@
                $("#error-msg").html(text);
             });
             socket.on('reload-table', function (msg) {
-                console.log(msg);
                 var data = msg['data'];
                 var count = msg['count'];
                 var balance = msg['balance'];
                 var clients_string = '';
                 var tit = '';
-                console.log(data);
-                console.log(count);
 
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
@@ -156,7 +152,6 @@
                 e.preventDefault();
                 var side = $(this).attr('side-data');
                 var order_type = $(this).attr('order-type');
-                console.log(order_type);
                 var price = 0;
                 if (order_type == 'Market') {
                     price = null;

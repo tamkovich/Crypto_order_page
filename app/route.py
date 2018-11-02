@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session
 from flask_socketio import emit
 from functools import wraps
 from threading import Lock
+import sqlalchemy
 import gc
 
 from app.models import UserModel
@@ -29,6 +30,16 @@ def login_required(f):
         else:
             flash('You have to login first')
             return redirect(url_for('login'))
+    return wrap
+
+
+def table_loader(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        global table
+        if table is None:
+            table = TableIhar()
+        f(*args, **kwargs)
     return wrap
 
 
@@ -62,6 +73,7 @@ def login():
 
 @app.route('/logout')
 @login_required
+@table_loader
 def logout():
     session.clear()
     flash('You have been logged out!')
@@ -123,10 +135,7 @@ def add_client(data):
     secret = secret.split('=')[-1]
     form = ClientForm(apiKey=key, secret=secret)
     if form.validate():
-        for c in table.clients:
-            if c.secret == secret and c.key == key:
-                break
-        else:
+        try:
             table.add_client(key, secret)
             table.update_all()
             table.view()
@@ -134,9 +143,10 @@ def add_client(data):
             socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
             sentry.captureMessage({'status': 'ok!'})
             return
-        sentry.captureMessage({'status': 'already exists!'})
-        emit('data error', {'msg': 'already exists!', 'income': 'Client'})
-        return
+        except sqlalchemy.exc.IntegrityError:
+            sentry.captureMessage({'status': 'already exists!'})
+            emit('data error', {'msg': 'already exists!', 'income': 'Client'})
+            return
     sentry.captureMessage({'status': 'fail! to create user'})
     emit('data error', {'msg': 'fail!', 'income': 'Client'})
     return

@@ -39,7 +39,7 @@ def table_loader(f):
         global table
         if table is None:
             table = TableIhar()
-        f(*args, **kwargs)
+        return f(*args, **kwargs)
     return wrap
 
 
@@ -73,7 +73,6 @@ def login():
 
 @app.route('/logout')
 @login_required
-@table_loader
 def logout():
     session.clear()
     flash('You have been logged out!')
@@ -83,6 +82,7 @@ def logout():
 
 @app.route('/')
 @login_required
+@table_loader
 def hello_world():
     form = ClientForm(request.form)
     return render_template('index.html', async_mode=socketio.async_mode, form=form)
@@ -94,14 +94,14 @@ def background_data():
         # sentry.captureMessage('**run table**')
         table.update_all()
         table.view()
-        data = table.table_data
-        socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
+        socketio.emit('reload-table', table.gen_data())
         socketio.sleep(45)
 
 
 @socketio.on('connect')
+@table_loader
 def test_connect():
-    sentry.captureMessage('connected')
+    # sentry.captureMessage('connected')
     global thread
     with thread_lock:
         if thread is None:
@@ -111,25 +111,26 @@ def test_connect():
 
 @socketio.on('my event')
 def handle_event(data):
-    sentry.captureMessage('received json: ' + str(data))
+    # sentry.captureMessage('received json: ' + str(data))
     emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('order')
 def order(data):
-    sentry.captureMessage(f'**{data}**')
+    # sentry.captureMessage(f'**{data}**')
     run = check_for_blank_in_json_by_fields(data, 'amount')
     if not run[0]:
         emit('data error', {'msg': run[1], 'income': data['type']})
         return
     table.add_order(type=data['type'], side=data['side'], amount=data['amount'], price=data['price'])
+    table.update_all()
     table.view()
-    socketio.emit('reload-table', {'data': table.table_data, 'count': len(table.table_data), 'balance': table.balance})
+    socketio.emit('reload-table', table.gen_data())
 
 
 @socketio.on('add-client')
 def add_client(data):
-    sentry.captureMessage('**add-client**')
+    # sentry.captureMessage('**add-client**')
     key, secret = data['form'].split('&')
     key = key.split('=')[-1]
     secret = secret.split('=')[-1]
@@ -139,8 +140,7 @@ def add_client(data):
             table.add_client(key, secret)
             table.update_all()
             table.view()
-            data = table.table_data
-            socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
+            socketio.emit('reload-table', table.gen_data())
             sentry.captureMessage({'status': 'ok!'})
             return
         except sqlalchemy.exc.IntegrityError:
@@ -154,9 +154,21 @@ def add_client(data):
 
 @socketio.on('rm-all-orders')
 def rm_all_orders():
-    sentry.captureMessage('**rm-all-orders**')
+    # sentry.captureMessage('**rm-all-orders**')
     table.close_all_orders()
     table.update_all()
     table.view()
-    data = table.table_data
-    socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
+    socketio.emit('reload-table', table.gen_data())
+
+
+@socketio.on('reorder')
+def reorder_failed(data):
+    # sentry.captureMessage('**reorder**')
+    run = check_for_blank_in_json_by_fields(data, 'amount')
+    if not run[0]:
+        emit('data error', {'msg': run[1], 'income': data['type']})
+        return
+    table.add_failed_order(type=data['type'], side=data['side'], amount=data['amount'], price=data['price'])
+    table.update_all()
+    table.view()
+    socketio.emit('reload-table', table.gen_data())

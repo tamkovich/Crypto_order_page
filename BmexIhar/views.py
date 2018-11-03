@@ -10,6 +10,7 @@ class TableIhar(Table):
 
     col_orders = 3
     order_structure_data = {'side': None, 'price': None, 'amount': None}
+    failed_data = {'amount': '', 'price': '', 'type': ''}
 
     @staticmethod
     def _gen_order_structure(side, price, amount):
@@ -18,6 +19,15 @@ class TableIhar(Table):
             'price': price,
             'amount': amount,
         }
+
+    def _get_balance(self, async_loop, tasks):
+        for client in self.clients:
+            tasks.append(async_loop.create_task(client.api.get_balance()))
+        if tasks:
+            wait_tasks = asyncio.wait(tasks)
+            run_event_loop(async_loop, wait_tasks)
+            tasks = []
+        return tasks
 
     def add_client(self, key: str, secret: str):
         client_object = ClientModel(key, secret)
@@ -28,12 +38,7 @@ class TableIhar(Table):
     def add_order(self, **kwargs):
         async_loop = load_event_loop()
         tasks = []
-        for client in self.clients:
-            tasks.append(async_loop.create_task(client.api.get_balance()))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
-            tasks = []
+        tasks = self._get_balance(async_loop, tasks)
         balance = sum(c.balance for c in self.clients)
         for client in self.clients:
             # compute amount by share in balance
@@ -47,6 +52,23 @@ class TableIhar(Table):
         for client in self.clients:
             client.create_order()
 
+    def add_failed_order(self, **kwargs):
+        async_loop = load_event_loop()
+        tasks = []
+        tasks = self._get_balance(async_loop, tasks)
+        balance = sum(c.balance if c.api.failed else 0 for c in self.clients)
+        for client in self.clients:
+            if client.api.failed:
+                client.api.failed = False
+                # compute amount by share in balance
+                amount = int((client.balance / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
+                order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
+                order_kwargs['type'] = kwargs['type']
+                tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
+        if tasks:
+            wait_tasks = asyncio.wait(tasks)
+            run_event_loop(async_loop, wait_tasks)
+
     def update_all(self):
         async_loop = load_event_loop()
         tasks = []
@@ -57,17 +79,14 @@ class TableIhar(Table):
             wait_tasks = asyncio.wait(tasks)
             run_event_loop(async_loop, wait_tasks)
             tasks = []
-        for client in self.clients:
-            tasks.append(async_loop.create_task(client.api.get_balance()))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
+        _ = self._get_balance(async_loop, tasks)
         for client in self.clients:
             client.update_orders()
             client.get_balance()
 
     def view(self):
         self.balance = 0
+        self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
             self.table_data[i]['balance'] = client.balance
@@ -91,6 +110,29 @@ class TableIhar(Table):
                     )
                 except IndexError:
                     self.table_data[i]['stops'][_j] = self._gen_order_structure(None, None, None)
+        self._compose_failed()
+
+    def _compose_failed(self):
+        amount = 0
+        price = 0
+        order_type = 'active'  # for the active order form
+        for client in self.clients:
+            if client.api.failed:
+                amount += client.api.order['amount']
+                price = client.api.order['price']
+                order_type = client.api.order['order_type']
+                print(client.api.order)
+        self.failed_data['amount'] = amount
+        self.failed_data['price'] = price
+        self.failed_data['type'] = order_type.capitalize()
+
+    def gen_data(self):
+        return {
+            'data': self.table_data,
+            'count': len(self.table_data),
+            'balance': self.balance,
+            'failed_data': self.failed_data
+        }
 
     def close_all_orders(self):
         async_loop = load_event_loop()

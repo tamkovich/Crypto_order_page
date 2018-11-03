@@ -61,6 +61,7 @@ class BmexClient:
     async def _create_order(self, order_type, side, amount, price=None, params={}):
         order = {}
         price = round_(price) if price else None
+        self.failed = True
         for _ in range(self.retry):
             try:
                 order = await self.exchange.create_order(
@@ -82,8 +83,17 @@ class BmexClient:
             except Exception as e:
                 sentry.captureException(e)
                 await asyncio.sleep(0.5)
-        self.order = order
-        self._debug(f'create_{self.order.get("type")}_order', {'order': self.order})
+        if self.failed:
+            self.order = {
+                'order_type': order_type,
+                'side': side,
+                'amount': amount,
+                'price': price,
+                'params': params
+            }
+        else:
+            self.order = order
+            self._debug(f'create_{self.order.get("type")}_order', {'order': self.order})
 
     async def create_order(self, type, side, amount, price=None):
         self.load_exchange()
@@ -92,12 +102,19 @@ class BmexClient:
         if type == 'Market':
             await self._create_order(type, side, amount, price)
         else:
-            params = {}
             if type == 'Stop':
                 params = {"stopPx": round_(price), "execInst": "LastPrice"}
-                price = None
-            await self._create_order(type, side, amount, price, params=params)
+                await self._create_order(type, side, amount, None, params=params)
+            else:
+                await self._create_order(type, side, amount, price)
 
+        if self.failed:
+            self.order = {
+                'order_type': type,
+                'side': side,
+                'amount': amount,
+                'price': price,
+            }
         await self.exchange.close()
 
     async def rm_all_orders(self):

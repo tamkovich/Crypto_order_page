@@ -25,26 +25,27 @@
                 <div class="container">
                    <a class="btn btn-sm btn-warning" id="rm-all-orders" role="button">Rm all orders</a>
                 </div>
+                <hr>
               </div>
               <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
-                  <div class="tab-pane fade show active" id="list-home" role="tabpanel" aria-labelledby="list-home-list">
+                  <div class="tab-pane fade show active" id="list-home" role="tabpanel" aria-labelledby="list-home-list" order-type="Market">
                     {% from "_formhelpers.html" import market_order_detail_form %}
                     {{ market_order_detail_form('Market') }}
                   </div>
-                  <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list">
+                  <div class="tab-pane fade" id="list-profile" role="tabpanel" aria-labelledby="list-profile-list"  order-type="Stop">
                     {% from "_formhelpers.html" import order_detail_form %}
                     {{ order_detail_form('Stop') }}
                   </div>
-                  <div class="tab-pane fade" id="list-messages" role="tabpanel" aria-labelledby="list-messages-list">
+                  <div class="tab-pane fade" id="list-messages" role="tabpanel" aria-labelledby="list-messages-list"  order-type="Limit">
                     {% from "_formhelpers.html" import order_detail_form %}
                     {{ order_detail_form('Limit') }}
                   </div>
                 </div>
+                <div id="error-msg">
+                <!--Here will be error data which is getting from socket-->
+                </div>
               </div>
-            </div>
-            <div id="error-msg">
-            <!--Here will be error data which is getting from socket-->
             </div>
         </div>
         <div class="col">
@@ -114,6 +115,7 @@
                 var data = msg['data'];
                 var count = msg['count'];
                 var balance = msg['balance'];
+                var failed_data = msg['failed_data'];
                 var clients_string = '';
                 var tit = '';
 
@@ -143,6 +145,15 @@
                 clients_string += '</tr>';
 
                 $(".client-table-body").html(clients_string);
+                console.log(failed_data);
+
+                if (failed_data['type'] == 'Active') {
+                    failed_data['type'] = $(".tab-pane.fade.show.active").attr('order-type');
+                }
+                $('#amount-'+failed_data['type']).value = failed_data['amount'].toString();
+                if (failed_data['type'] != 'Market') {
+                    $('#price-' + failed_data['type']).value = failed_data['price'].toString();
+                }
             });
             $('.add-client').click(function (e) {
                 socket.emit('add-client', {form: $('.add-client-form').serialize()});
@@ -172,6 +183,26 @@
                 socket.emit('rm-all-orders');
                 return false;
             });
+            $('.reorder').click(function (e) {
+                e.preventDefault();
+                var side = $(this).attr('side-data');
+                var order_type = $(this).attr('order-type');
+                var price = 0;
+                if (order_type == 'Market') {
+                    price = null;
+                } else {
+                    price = $('#price-'+order_type).val();
+                }
+                data = {
+                    side: side,
+                    type: order_type,
+                    price: price,
+                    amount: $('#amount-'+order_type).val(),
+                };
+                socket.emit('reorder', data);
+                return false;
+            });
+
         });
     </script>
   </body>

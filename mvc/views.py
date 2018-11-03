@@ -33,6 +33,15 @@ class Table(ABC):
         pass
 
     @abstractmethod
+    def add_failed_order(self, **kwargs):
+        """
+        use ClientExample to try open failed orders another time
+        :param kwargs: params to create order
+        :return: None
+        """
+        pass
+
+    @abstractmethod
     def update_all(self):
         """
         update all clients data.
@@ -46,6 +55,22 @@ class Table(ABC):
         """
         structure all orders and clients to dict()-view
         :return: None
+        """
+        pass
+
+    @abstractmethod
+    def _compose_failed(self):
+        """
+        generate data from failed orders
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def gen_data(self) -> dict:
+        """
+        Structure all data for the front-end part
+        :return: <dict> front-end data
         """
         pass
 

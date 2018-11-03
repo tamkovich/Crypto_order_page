@@ -25,6 +25,10 @@
                 <div class="container">
                    <a class="btn btn-sm btn-warning" id="rm-all-orders" role="button">Rm all orders</a>
                 </div>
+                <hr>
+                <div class="container">
+                   <a class="btn btn-sm btn-danger" id="reorder-failed" role="button">Reorder failed</a>
+                </div>
               </div>
               <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
@@ -41,10 +45,10 @@
                     {{ order_detail_form('Limit') }}
                   </div>
                 </div>
+                <div id="error-msg">
+                <!--Here will be error data which is getting from socket-->
+                </div>
               </div>
-            </div>
-            <div id="error-msg">
-            <!--Here will be error data which is getting from socket-->
             </div>
         </div>
         <div class="col">
@@ -172,6 +176,26 @@
                 socket.emit('rm-all-orders');
                 return false;
             });
+            $('.reorder').click(function (e) {
+                e.preventDefault();
+                var side = $(this).attr('side-data');
+                var order_type = $(this).attr('order-type');
+                var price = 0;
+                if (order_type == 'Market') {
+                    price = null;
+                } else {
+                    price = $('#price-'+order_type).val();
+                }
+                data = {
+                    side: side,
+                    type: order_type,
+                    price: price,
+                    amount: $('#amount-'+order_type).val(),
+                };
+                socket.emit('reorder-failed', data);
+                return false;
+            });
+
         });
     </script>
   </body>

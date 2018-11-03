@@ -73,7 +73,6 @@ def login():
 
 @app.route('/logout')
 @login_required
-@table_loader
 def logout():
     session.clear()
     flash('You have been logged out!')
@@ -83,6 +82,7 @@ def logout():
 
 @app.route('/')
 @login_required
+@table_loader
 def hello_world():
     form = ClientForm(request.form)
     return render_template('index.html', async_mode=socketio.async_mode, form=form)
@@ -100,6 +100,7 @@ def background_data():
 
 
 @socketio.on('connect')
+@table_loader
 def test_connect():
     sentry.captureMessage('connected')
     global thread
@@ -160,3 +161,16 @@ def rm_all_orders():
     table.view()
     data = table.table_data
     socketio.emit('reload-table', {'data': data, 'count': len(data), 'balance': table.balance})
+
+
+@socketio.on('reorder-failed')
+def reorder_failed(data):
+    sentry.captureMessage('**reorder-failed**')
+    run = check_for_blank_in_json_by_fields(data, 'amount')
+    if not run[0]:
+        emit('data error', {'msg': run[1], 'income': data['type']})
+        return
+    table.add_failed_order(type=data['type'], side=data['side'], amount=data['amount'], price=data['price'])
+    table.update_all()
+    table.view()
+    socketio.emit('reload-table', {'data': table.table_data, 'count': len(table.table_data), 'balance': table.balance})

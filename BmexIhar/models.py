@@ -20,11 +20,13 @@ class OrderBmex(Order):
 class ClientBmex(Client):
 
     def create_order(self):
-
-        order = OrderModel(order_exchange_id=self.api.order['id'], client=self.client_object)
-        db.session.add(order)
-        db.session.commit()
-        self.orders.append(OrderBmex(order))
+        if self.api.failed:
+            pass
+        else:
+            order = OrderModel(order_exchange_id=self.api.order['id'], client=self.client_object)
+            db.session.add(order)
+            db.session.commit()
+            self.orders.append(OrderBmex(order))
 
     def get_balance(self):
         self.balance = self.api.balance

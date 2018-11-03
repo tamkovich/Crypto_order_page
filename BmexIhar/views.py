@@ -19,6 +19,15 @@ class TableIhar(Table):
             'amount': amount,
         }
 
+    def _get_balance(self, async_loop, tasks):
+        for client in self.clients:
+            tasks.append(async_loop.create_task(client.api.get_balance()))
+        if tasks:
+            wait_tasks = asyncio.wait(tasks)
+            run_event_loop(async_loop, wait_tasks)
+            tasks = []
+        return tasks
+
     def add_client(self, key: str, secret: str):
         client_object = ClientModel(key, secret)
         db.session.add(client_object)
@@ -28,12 +37,7 @@ class TableIhar(Table):
     def add_order(self, **kwargs):
         async_loop = load_event_loop()
         tasks = []
-        for client in self.clients:
-            tasks.append(async_loop.create_task(client.api.get_balance()))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
-            tasks = []
+        tasks = self._get_balance(async_loop, tasks)
         balance = sum(c.balance for c in self.clients)
         for client in self.clients:
             # compute amount by share in balance
@@ -47,6 +51,23 @@ class TableIhar(Table):
         for client in self.clients:
             client.create_order()
 
+    def add_failed_order(self, **kwargs):
+        async_loop = load_event_loop()
+        tasks = []
+        tasks = self._get_balance(async_loop, tasks)
+        balance = sum(c.balance if c.api.failed else 0 for c in self.clients)
+        for client in self.clients:
+            if client.api.failed:
+                client.api.failed = False
+                # compute amount by share in balance
+                amount = int((client.balance / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
+                order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
+                order_kwargs['type'] = kwargs['type']
+                tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
+        if tasks:
+            wait_tasks = asyncio.wait(tasks)
+            run_event_loop(async_loop, wait_tasks)
+
     def update_all(self):
         async_loop = load_event_loop()
         tasks = []
@@ -57,11 +78,7 @@ class TableIhar(Table):
             wait_tasks = asyncio.wait(tasks)
             run_event_loop(async_loop, wait_tasks)
             tasks = []
-        for client in self.clients:
-            tasks.append(async_loop.create_task(client.api.get_balance()))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
+        _ = self._get_balance(async_loop, tasks)
         for client in self.clients:
             client.update_orders()
             client.get_balance()
@@ -91,6 +108,9 @@ class TableIhar(Table):
                     )
                 except IndexError:
                     self.table_data[i]['stops'][_j] = self._gen_order_structure(None, None, None)
+
+    def _view_failed(self):
+        pass
 
     def close_all_orders(self):
         async_loop = load_event_loop()

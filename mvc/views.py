@@ -33,6 +33,15 @@ class Table(ABC):
         pass
 
     @abstractmethod
+    def add_failed_order(self, **kwargs):
+        """
+        use ClientExample to try open failed orders another time
+        :param kwargs: params to create order
+        :return: None
+        """
+        pass
+
+    @abstractmethod
     def update_all(self):
         """
         update all clients data.

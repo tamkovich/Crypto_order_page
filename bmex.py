@@ -110,7 +110,7 @@ class BmexClient:
 
         if self.failed:
             self.order = {
-                'type': type,
+                'order_type': type,
                 'side': side,
                 'amount': amount,
                 'price': price,

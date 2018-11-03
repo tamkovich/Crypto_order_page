@@ -10,6 +10,7 @@ class TableIhar(Table):
 
     col_orders = 3
     order_structure_data = {'side': None, 'price': None, 'amount': None}
+    failed_data = {'amount': '', 'price': '', 'type': ''}
 
     @staticmethod
     def _gen_order_structure(side, price, amount):
@@ -85,6 +86,7 @@ class TableIhar(Table):
 
     def view(self):
         self.balance = 0
+        self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
             self.table_data[i]['balance'] = client.balance
@@ -108,9 +110,29 @@ class TableIhar(Table):
                     )
                 except IndexError:
                     self.table_data[i]['stops'][_j] = self._gen_order_structure(None, None, None)
+        self._compose_failed()
 
-    def _view_failed(self):
-        pass
+    def _compose_failed(self):
+        amount = 0
+        price = 0
+        order_type = 'active'  # for the active order form
+        for client in self.clients:
+            if client.api.failed:
+                amount += client.api.order['amount']
+                price = client.api.order['price']
+                order_type = client.api.order['order_type']
+                print(client.api.order)
+        self.failed_data['amount'] = amount
+        self.failed_data['price'] = price
+        self.failed_data['type'] = order_type.capitalize()
+
+    def gen_data(self):
+        return {
+            'data': self.table_data,
+            'count': len(self.table_data),
+            'balance': self.balance,
+            'failed_data': self.failed_data
+        }
 
     def close_all_orders(self):
         async_loop = load_event_loop()

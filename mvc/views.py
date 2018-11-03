@@ -59,6 +59,22 @@ class Table(ABC):
         pass
 
     @abstractmethod
+    def _compose_failed(self):
+        """
+        generate data from failed orders
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def gen_data(self) -> dict:
+        """
+        Structure all data for the front-end part
+        :return: <dict> front-end data
+        """
+        pass
+
+    @abstractmethod
     def load_clients(self, clients_objects):
         """
         self.clients: <list>

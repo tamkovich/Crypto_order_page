@@ -45,7 +45,7 @@ class BmexClient:
                 break
             except ccxt.AuthenticationError:
                 sentry.captureMessage(f'Auth error')
-                await asyncio.sleep(0.5)
+                break
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 sentry.captureMessage(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
                 await asyncio.sleep(0.5)
@@ -76,7 +76,7 @@ class BmexClient:
                 break
             except ccxt.AuthenticationError:
                 sentry.captureMessage(f'Auth error')
-                await asyncio.sleep(0.5)
+                break
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 sentry.captureMessage(f'Failed to create order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
                 await asyncio.sleep(0.5)
@@ -142,7 +142,7 @@ class BmexClient:
                 await asyncio.sleep(0.5)
             except ccxt.AuthenticationError:
                 sentry.captureMessage(f'Auth error')
-                await asyncio.sleep(0.5)
+                break
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 sentry.captureMessage(f'Failed to check order with {self.exchange.id} {type(_ex).__name__} {str(_ex)}')
                 await asyncio.sleep(0.5)

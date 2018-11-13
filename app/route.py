@@ -90,8 +90,6 @@ def hello_world():
 
 def background_data():
     while True:
-        # too much events, so I don't use as alert
-        # sentry.captureMessage('**run table**')
         table.update_all()
         table.view()
         socketio.emit('reload-table', table.gen_data())
@@ -101,7 +99,6 @@ def background_data():
 @socketio.on('connect')
 @table_loader
 def test_connect():
-    # sentry.captureMessage('connected')
     global thread
     with thread_lock:
         if thread is None:
@@ -110,14 +107,12 @@ def test_connect():
 
 
 @socketio.on('my event')
-def handle_event(data):
-    # sentry.captureMessage('received json: ' + str(data))
+def handle_event(_):
     emit('my response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('order')
 def order(data):
-    # sentry.captureMessage(f'**{data}**')
     run = check_for_blank_in_json_by_fields(data, 'amount')
     if not run[0]:
         emit('data error', {'msg': run[1], 'income': data['type']})
@@ -130,7 +125,6 @@ def order(data):
 
 @socketio.on('add-client')
 def add_client(data):
-    # sentry.captureMessage('**add-client**')
     key, secret = data['form'].split('&')
     key = key.split('=')[-1]
     secret = secret.split('=')[-1]
@@ -141,7 +135,6 @@ def add_client(data):
             table.update_all()
             table.view()
             socketio.emit('reload-table', table.gen_data())
-            sentry.captureMessage({'status': 'ok!'})
             return
         except sqlalchemy.exc.IntegrityError:
             sentry.captureMessage({'status': 'already exists!'})
@@ -154,7 +147,6 @@ def add_client(data):
 
 @socketio.on('rm-all-orders')
 def rm_all_orders():
-    # sentry.captureMessage('**rm-all-orders**')
     table.close_all_orders()
     table.update_all()
     table.view()
@@ -163,7 +155,6 @@ def rm_all_orders():
 
 @socketio.on('reorder')
 def reorder_failed(data):
-    # sentry.captureMessage('**reorder**')
     run = check_for_blank_in_json_by_fields(data, 'amount')
     if not run[0]:
         emit('data error', {'msg': run[1], 'income': data['type']})

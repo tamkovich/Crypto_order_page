@@ -20,8 +20,8 @@ def test_rm_all_orders():
 
 
 def test_add_client():
-    key = 'B8BKl9xDOWNKHfZnl2ikISuW'
-    secret = '4omaSxBZnfL5jn3SWHXF5aPpvjSxqI8SZY8VT-eFoTrvbBn8'
+    key = ''
+    secret = ''
     table.add_client(key, secret)
 
 
@@ -32,8 +32,4 @@ def test_update_table():
 
 
 if __name__ == '__main__':
-    # test_create_stop_order()
-    # test_create_limit_order()
-    # test_create_market_order()
-    # test_rm_all_orders()
     test_update_table()

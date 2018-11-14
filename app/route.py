@@ -7,15 +7,11 @@ import gc
 
 from app.models import UserModel
 from app.forms import UserLoginForm, ClientForm
-from app import app, socketio, sentry
+from app import app, socketio
 
 from bmex import check_for_blank_in_json_by_fields
 
 from BmexIhar.views import TableIhar
-
-# admin = UserModel('trademan', 'wen234man')
-# db.session.add(admin)
-# db.session.commit()
 
 thread_lock = Lock()
 table = None
@@ -137,10 +133,8 @@ def add_client(data):
             socketio.emit('reload-table', table.gen_data())
             return
         except sqlalchemy.exc.IntegrityError:
-            sentry.captureMessage({'status': 'already exists!'})
             emit('data error', {'msg': 'already exists!', 'income': 'Client'})
             return
-    sentry.captureMessage({'status': 'fail! to create user'})
     emit('data error', {'msg': 'fail!', 'income': 'Client'})
     return
 

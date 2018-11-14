@@ -118,7 +118,7 @@ class TableIhar(Table):
         order_type = 'active'  # for the active order form
         for client in self.clients:
             if client.api.failed:
-                amount += client.api.order['amount']
+                amount += client.api.order.get('amount', 0)
                 price = client.api.order['price']
                 order_type = client.api.order['order_type']
                 print(client.api.order)

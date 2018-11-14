@@ -23,7 +23,7 @@
                 </div>
                 <br>
                 <div class="container">
-                   <a class="btn btn-sm btn-warning" id="rm-all-orders" role="button">Rm all orders</a>
+                   <a class="btn btn-sm btn-warning" id="rm-all-orders" role="button">Remove all orders</a>
                 </div>
                 <hr>
               </div>
@@ -125,16 +125,28 @@
                     clients_string += '<td>' + data[i]["balance"].toString() + '</td>';
                     for (j = 0; j<data[i]["limits"].length; j++){
                         tit = '';
-                        tit += data[i]["limits"][j]["side"] + ' | ';
-                        tit += data[i]["limits"][j]["price"] + ' | ';
-                        tit += data[i]["limits"][j]["amount"];
+                        if (data[i]["limits"][j]["side"]) {
+                            tit += data[i]["limits"][j]["side"] + ' | ';
+                        } else tit += '- | ';
+                        if (data[i]["limits"][j]["price"]) {
+                            tit += data[i]["limits"][j]["price"] + ' | ';
+                        } else tit += '- | ';
+                        if (data[i]["limits"][j]["amount"]) {
+                            tit += data[i]["limits"][j]["amount"];
+                        } else tit += '-';
                         clients_string += '<td>' + tit + '</td>';
                     }
                     for (j = 0; j<data[i]["stops"].length; j++){
                         tit = '';
-                        tit += data[i]["stops"][j]["side"] + ' | ';
-                        tit += data[i]["stops"][j]["price"] + ' | ';
-                        tit += data[i]["stops"][j]["amount"];
+                        if (data[i]["stops"][j]["side"]) {
+                            tit += data[i]["stops"][j]["side"] + ' | ';
+                        } else tit += '- | ';
+                        if (data[i]["stops"][j]["price"]) {
+                            tit += data[i]["stops"][j]["price"] + ' | ';
+                        } else tit += '- | ';
+                        if (data[i]["stops"][j]["amount"]) {
+                            tit += data[i]["stops"][j]["amount"];
+                        } else tit += '-';
                         clients_string += '<td>' + tit + '</td>';
                     }
                     clients_string += '</tr>';

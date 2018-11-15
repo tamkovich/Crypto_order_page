@@ -149,6 +149,9 @@ def rm_all_orders():
 
 @socketio.on('reorder')
 def reorder_failed(data):
+    if not table.failed_data['amount']:
+        emit('data good', {'msg': 'There are no failed orders!', 'income': 'All good!'})
+        return
     run = check_for_blank_in_json_by_fields(data, 'amount')
     if not run[0]:
         emit('data error', {'msg': run[1], 'income': data['type']})

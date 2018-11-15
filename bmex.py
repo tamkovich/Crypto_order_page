@@ -71,19 +71,10 @@ class BmexClient:
                 self.failed = False
                 break
             except ccxt.AuthenticationError as _er:
-                print('-----')
-                print(_er)
-                print('-----')
                 break
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                print('-----')
-                print(_er)
-                print('-----')
                 await asyncio.sleep(0.5)
             except Exception as _er:
-                print('-----')
-                print(_er)
-                print('-----')
                 await asyncio.sleep(0.5)
         if self.failed:
             self.order = {
@@ -149,6 +140,8 @@ class BmexClient:
                 await asyncio.sleep(0.5)
         for order in orders:
             if order['id'] in orders_ids:
+                if not order.get('price'):
+                    order['price'] = order['info']['stopPx']
                 self.orders[order['id']] = order
         # assert len(self.orders) == len(orders_ids), 'Length of orders you have not the same as in exchange'
         await self.exchange.close()

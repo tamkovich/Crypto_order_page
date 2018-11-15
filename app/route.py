@@ -116,6 +116,8 @@ def order(data):
     table.add_order(type=data['type'], side=data['side'], amount=data['amount'], price=data['price'])
     table.update_all()
     table.view()
+    if not table.failed_data['amount']:
+        emit('data success', {'msg': 'All orders created!', 'income': 'Order!'})
     socketio.emit('reload-table', table.gen_data())
 
 
@@ -130,7 +132,8 @@ def add_client(data):
             table.add_client(key, secret)
             table.update_all()
             table.view()
-            socketio.emit('reload-table', table.gen_data())
+            emit('data success', {'msg': 'Successfully added!', 'income': 'Client!'})
+            emit('reload-table', table.gen_data())
             return
         except sqlalchemy.exc.IntegrityError:
             emit('data error', {'msg': 'already exists!', 'income': 'Client'})
@@ -150,7 +153,7 @@ def rm_all_orders():
 @socketio.on('reorder')
 def reorder_failed(data):
     if not table.failed_data['amount']:
-        emit('data good', {'msg': 'There are no failed orders!', 'income': 'All good!'})
+        emit('data success', {'msg': 'There are no failed orders!', 'income': 'All good!'})
         return
     run = check_for_blank_in_json_by_fields(data, 'amount')
     if not run[0]:

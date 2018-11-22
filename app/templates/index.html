@@ -70,7 +70,12 @@
           <tr>
             <th scope="col">#</th>
             <th scope="col">balance</th>
-            <th scope="col">positions</th>
+
+            <th scope="col">Side</th>
+            <th scope="col">Price</th>
+            <th scope="col">Amount</th>
+            <th scope="col">leverage</th>
+            <th scope="col">Liquidation</th>
 
             <th scope="col">Limit order #1</th>
             <th scope="col">Limit order #2</th>
@@ -127,7 +132,6 @@
                 var data = msg['data'];
                 var count = msg['count'];
                 var balance = msg['balance'];
-                var positions = '';
                 var failed_data = msg['failed_data'];
                 var clients_string = '';
                 var tit = '';
@@ -136,7 +140,7 @@
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + i.toString() + '</th>';
                     clients_string += '<td>' + data[i]["balance"].toString() + '</td>';
-                    clients_string += '<td><button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bd-positions-modal-'+i.toString()+'">Positions</button></td>';
+                    clients_string += load_positions(data[i]['positions']);
                     load_modal(i, data[i]['positions']);
                     for (j = 0; j<data[i]["limits"].length; j++){
                         tit = '';
@@ -229,7 +233,23 @@
                 socket.emit('reorder', data);
                 return false;
             });
-
+            function load_positions(positions) {
+                var positions_tags = '';
+                if (positions.length > 0) {
+                    positions_tags += '<td>' + positions[0]["side"] + '</td>';
+                    positions_tags += '<td>' + positions[0]["price"] + '</td>';
+                    positions_tags += '<td>' + positions[0]["amount"] + '</td>';
+                    positions_tags += '<td>' + positions[0]["leverage"] + '</td>';
+                    positions_tags += '<td>' + positions[0]["liquidation"] + '</td>';
+                } else {
+                    positions_tags += '<td>-</td>';
+                    positions_tags += '<td>-</td>';
+                    positions_tags += '<td>-</td>';
+                    positions_tags += '<td>-</td>';
+                    positions_tags += '<td>-</td>';
+                }
+                return positions_tags;
+            }
             function  load_modal(i, positions) {
                 var modal = '<div class="modal fade bd-positions-modal-'+i.toString()+'" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">\n' +
                     '        <div class="modal-dialog modal-lg">\n' +

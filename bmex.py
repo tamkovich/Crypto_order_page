@@ -168,31 +168,6 @@ class BmexClient:
                 self.orders[order['id']] = order
         await self.exchange.close()
 
-    async def check_all_orders(self, orders_ids: list):
-        self.load_exchange()
-        for order_id in orders_ids:
-            self.orders[order_id] = dict()
-        orders = []
-        for _ in range(self.retry):
-            try:
-                orders = await self.exchange.fetch_open_orders(self.symbol)
-                break
-            except ccxt.OrderNotFound:
-                await asyncio.sleep(0.5)
-            except ccxt.AuthenticationError:
-                break
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                await asyncio.sleep(0.5)
-            except Exception as _ex:
-                await asyncio.sleep(0.5)
-        for order in orders:
-            if order['id'] in orders_ids:
-                if not order.get('price'):
-                    order['price'] = order['info']['stopPx']
-                self.orders[order['id']] = order
-
-        await self.exchange.close()
-
     async def _close_order(self, order_id: str):
         order = {}
         try:

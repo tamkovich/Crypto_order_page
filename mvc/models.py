@@ -15,7 +15,10 @@ class Order(ABC):
     leverage = None
 
     def __init__(self, order_object):
-        self.id = order_object.order_exchange_id
+        try:
+            self.id = order_object.order_exchange_id
+        except:
+            self.id = None
 
     @abstractmethod
     def update(self, **kwargs):

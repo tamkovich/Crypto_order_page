@@ -88,7 +88,8 @@ def background_data():
     while True:
         table.update_all()
         table.view()
-        socketio.emit('reload-table', table.gen_data())
+        data = table.gen_data()
+        socketio.emit('reload-table', data)
         socketio.sleep(45)
 
 
@@ -109,7 +110,10 @@ def handle_event(_):
 
 @socketio.on('order')
 def order(data):
-    run = check_for_blank_in_json_by_fields(data, 'amount')
+    if data['type'] == 'Market':
+        run = check_for_blank_in_json_by_fields(data, 'amount')
+    else:
+        run = check_for_blank_in_json_by_fields(data, 'amount', 'price')
     if not run[0]:
         emit('data error', {'msg': run[1], 'income': data['type']})
         return

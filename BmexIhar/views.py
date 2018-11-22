@@ -19,6 +19,16 @@ class TableIhar(Table):
             'amount': amount,
         }
 
+    @staticmethod
+    def _gen_position_structure(side, price, amount, leverage, liquidation):
+        return {
+            'side': side,
+            'price': price,
+            'amount': amount,
+            'leverage': leverage,
+            'liquidation': liquidation,
+        }
+
     def _get_balance(self, async_loop, tasks):
         for client in self.clients:
             tasks.append(async_loop.create_task(client.api.get_balance()))
@@ -109,6 +119,16 @@ class TableIhar(Table):
                     )
                 except IndexError:
                     self.table_data[i]['stops'][_j] = self._gen_order_structure(None, None, None)
+
+            self.table_data[i]['positions'] = []
+            for position in client.positions:
+                self.table_data[i]['positions'].append(self._gen_position_structure(
+                    position.side,
+                    position.price,
+                    position.amount,
+                    position.leverage,
+                    position.liquidation
+                ))
         self._compose_failed()
 
     def _compose_failed(self):
@@ -130,7 +150,7 @@ class TableIhar(Table):
             'data': self.table_data,
             'count': len(self.table_data),
             'balance': self.balance,
-            'failed_data': self.failed_data
+            'failed_data': self.failed_data,
         }
 
     def close_all_orders(self):

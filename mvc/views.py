@@ -8,6 +8,7 @@ class Table(ABC):
     table_data = dict()
     clients = None
     balance = 0
+    error_msg = None
 
     def __init__(self):
         clients_objects = ClientModel.query.all()

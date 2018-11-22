@@ -46,20 +46,22 @@ class TableIhar(Table):
 
     def add_order(self, **kwargs):
         async_loop = load_event_loop()
+        valid_price = self.check_price(async_loop, kwargs)
         tasks = []
         tasks = self._get_balance(async_loop, tasks)
         balance = sum(c.balance for c in self.clients)
-        for client in self.clients:
-            # compute amount by share in balance
-            amount = int((client.balance / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
-            order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
-            order_kwargs['type'] = kwargs['type']
-            tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
-        wait_tasks = asyncio.wait(tasks)
-        run_event_loop(async_loop, wait_tasks)
+        if valid_price:
+            for client in self.clients:
+                # compute amount by share in balance
+                amount = int((client.balance / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
+                order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
+                order_kwargs['type'] = kwargs['type']
+                tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
+            wait_tasks = asyncio.wait(tasks)
+            run_event_loop(async_loop, wait_tasks)
 
-        for client in self.clients:
-            client.create_order()
+            for client in self.clients:
+                client.create_order()
 
     def add_failed_order(self, **kwargs):
         async_loop = load_event_loop()
@@ -100,12 +102,12 @@ class TableIhar(Table):
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
-            self.table_data[i]['balance'] = client.balance
+            self.table_data[i]['balance'] = round(client.balance, 5)
             self.table_data[i]['limits'] = [None] * self.col_orders
             self.table_data[i]['stops'] = [None] * self.col_orders
             limits = list(filter(lambda o: o.type == 'limit', client.orders))[:self.col_orders]
             stops = list(filter(lambda o: o.type == 'stop', client.orders))[:self.col_orders]
-            self.balance += self.table_data[i]['balance']
+            self.balance += client.balance
             for _j in range(self.col_orders):
                 # limit
                 try:
@@ -154,6 +156,17 @@ class TableIhar(Table):
             'balance': self.balance,
             'failed_data': self.failed_data,
         }
+
+    def check_price(self, async_loop, kwargs):
+        self.error_msg = ''
+        tasks = [async_loop.create_task(self.clients[0].api.current_price(**kwargs))]
+        if tasks:
+            wait_tasks = asyncio.wait(tasks)
+            run_event_loop(async_loop, wait_tasks)
+        if self.clients[0].api.invalid_price:
+            self.error_msg = 'Invalid Price'
+            return False
+        return True
 
     def close_all_orders(self):
         async_loop = load_event_loop()

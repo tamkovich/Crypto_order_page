@@ -120,7 +120,9 @@ def order(data):
     table.add_order(type=data['type'], side=data['side'], amount=data['amount'], price=data['price'])
     table.update_all()
     table.view()
-    if not table.failed_data['amount']:
+    if table.error_msg:
+        emit('data error', {'msg': table.error_msg, 'income': data['type']})
+    elif not table.failed_data['amount']:
         emit('data success', {'msg': 'All orders created!', 'income': 'Order!'})
     socketio.emit('reload-table', table.gen_data())
 

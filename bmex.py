@@ -21,6 +21,7 @@ class BmexClient:
         self.exchange = None
         self.orders = dict()
         self.positions = dict()
+        self.invalid_price = False
 
     def load_exchange(self):
         self.exchange = ccxt.bitmex({
@@ -46,7 +47,10 @@ class BmexClient:
                 break
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 await asyncio.sleep(0.5)
-        self.balance = balance["BTC"]["total"]
+        try:
+            self.balance = balance["BTC"]["total"]
+        except TypeError:
+            self.balance = 0
         await self.exchange.close()
 
     def _debug(self, filename, params={}):
@@ -56,6 +60,8 @@ class BmexClient:
                     f.write(f'{k} = {params[k]}\n')
 
     async def _create_order(self, order_type, side, amount, price=None, params={}):
+        self.invalid_price = False
+
         order = {}
         price = round_(price) if price else None
         self.failed = True
@@ -115,7 +121,10 @@ class BmexClient:
 
     async def rm_all_orders(self):
         self.load_exchange()
-        orders = await self.exchange.fetch_open_orders(self.symbol)
+        try:
+            orders = await self.exchange.fetch_open_orders(self.symbol)
+        except ccxt.AuthenticationError:
+            orders = []
         if orders:
             for order in orders:
                 await self._close_order(order['id'])
@@ -176,6 +185,24 @@ class BmexClient:
             pass
         self.order = {}
         self._debug('_close_order', {'order': self.order, 'response': order})
+
+    async def current_price(self, type, side, amount, price=None):
+        self.load_exchange()
+        if type != 'Market':
+            current_price = None
+            try:
+                markets = await self.exchange.fetchMarkets()
+                for market in markets:
+                    if market['symbol'] == self.symbol:
+                        current_price = market['info']['askPrice']
+                        break
+            except ccxt.AuthenticationError:
+                await asyncio.sleep(1)
+            if (type == 'Stop' and side == 'sell') or (type == 'Limit' and side == 'buy'):
+                self.invalid_price = int(price) > current_price
+            elif (type == 'Stop' and side == 'buy') or (type == 'Limit' and side == 'sell'):
+                self.invalid_price = int(price) < current_price
+        await self.exchange.close()
 
 
 def _is_field_not_blank(field, *filters):

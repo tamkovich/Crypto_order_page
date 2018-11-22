@@ -9,7 +9,6 @@ from mvc.views import Table
 class TableIhar(Table):
 
     col_orders = 3
-    order_structure_data = {'side': None, 'price': None, 'amount': None}
     failed_data = {'amount': '', 'price': '', 'type': ''}
 
     @staticmethod
@@ -74,7 +73,7 @@ class TableIhar(Table):
         tasks = []
         for client in self.clients:
             orders_ids = list(map(lambda o: o.id, client.orders))
-            tasks.append(async_loop.create_task(client.api.check_all_orders(orders_ids)))
+            tasks.append(async_loop.create_task(client.api.check_everything(orders_ids)))
         if tasks:
             wait_tasks = asyncio.wait(tasks)
             run_event_loop(async_loop, wait_tasks)

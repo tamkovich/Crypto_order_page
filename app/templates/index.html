@@ -60,15 +60,17 @@
             </form>
         </div>
         <div class="w-100"></div>
-      </div>
+        <div class="modals"></div>
+    </div>
   </div>
 
-  <div class="table-responsive-sm">
+  <div class="table-responsive-lg">
     <table class="table">
         <thead>
           <tr>
             <th scope="col">#</th>
             <th scope="col">balance</th>
+            <th scope="col">positions</th>
 
             <th scope="col">Limit order #1</th>
             <th scope="col">Limit order #2</th>
@@ -84,6 +86,7 @@
         </tbody>
     </table>
   </div>
+
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
@@ -132,6 +135,8 @@
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + i.toString() + '</th>';
                     clients_string += '<td>' + data[i]["balance"].toString() + '</td>';
+                    clients_string += '<td><button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bd-positions-modal-'+i.toString()+'">Positions</button></td>';
+                    load_modal(i);
                     for (j = 0; j<data[i]["limits"].length; j++){
                         tit = '';
                         if (data[i]["limits"][j]["side"]) {
@@ -223,6 +228,45 @@
                 socket.emit('reorder', data);
                 return false;
             });
+
+            function  load_modal(i) {
+                var modal = '<div class="modal fade bd-positions-modal-'+i.toString()+'" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">\n' +
+                    '        <div class="modal-dialog modal-lg">\n' +
+                    '            <div class="modal-content">\n' +
+                    '                <div class="modal-header">\n' +
+                    '                    <h5 class="modal-title">Positions</h5>\n' +
+                    '                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">\n' +
+                    '                      <span aria-hidden="true">&times;</span>\n' +
+                    '                    </button>\n' +
+                    '                </div>\n' +
+                    '                <div class="modal-body">\n' +
+                    '                    <div class="table-responsive-lg">\n' +
+                    '                    <table class="table">\n' +
+                    '                        <thead>\n' +
+                    '                          <tr>\n' +
+                    '                            <th scope="col">#</th>\n' +
+                    '\n' +
+                    '                            <th scope="col">Side</th>\n' +
+                    '                            <th scope="col">Price</th>\n' +
+                    '                            <th scope="col">Amount</th>\n' +
+                    '                            <th scope="col">leverage</th>\n' +
+                    '                            <th scope="col">Liquidation</th>\n' +
+                    '                          </tr>\n' +
+                    '                        </thead>\n' +
+                    '                        <tbody class="position-table-body">\n' +
+                    '                        <!--Here will be position data which is getting from socket-->\n' +
+                    '                        </tbody>\n' +
+                    '                    </table>\n' +
+                    '                    </div>\n' +
+                    '                    <div class="modal-footer">\n' +
+                    '                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>\n' +
+                    '                    </div>\n' +
+                    '                </div>\n' +
+                    '            </div>\n' +
+                    '        </div>\n' +
+                    '      </div>';
+                $(".modals").prepend(modal);
+            }
 
         });
     </script>

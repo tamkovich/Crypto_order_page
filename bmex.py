@@ -20,6 +20,7 @@ class BmexClient:
         self.order = {}
         self.exchange = None
         self.orders = dict()
+        self.positions = dict()
 
     def load_exchange(self):
         self.exchange = ccxt.bitmex({
@@ -72,8 +73,10 @@ class BmexClient:
                 break
             except ccxt.AuthenticationError as _er:
                 break
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+            except ccxt.RequestTimeout as _ex:
                 await asyncio.sleep(0.5)
+            except (ccxt.ExchangeNotAvailable, ccxt.ExchangeError) as _ex:
+                break
             except Exception as _er:
                 await asyncio.sleep(0.5)
         if self.failed:
@@ -90,8 +93,8 @@ class BmexClient:
 
     async def create_order(self, type, side, amount, price=None):
         self.load_exchange()
-        assert type in ['Stop', 'Market', 'Limit'], 'There is no such order-type. ' \
-                                                    'Valid order types: [Stop, Market, Limit]'
+        # assert type in ['Stop', 'Market', 'Limit'], 'There is no such order-type. ' \
+        #                                             'Valid order types: [Stop, Market, Limit]'
         if type == 'Market':
             await self._create_order(type, side, amount, price)
         else:
@@ -121,6 +124,50 @@ class BmexClient:
         self._debug('rm_all_orders', {'order': self.order, 'orders': orders})
         await self.exchange.close()
 
+    async def check_everything(self, orders_ids: list):
+        self.load_exchange()
+        for order_id in orders_ids:
+            self.orders[order_id] = dict()
+        orders = []
+        positions = []
+        for _ in range(self.retry):
+            try:
+                orders = await self.exchange.fetch_open_orders(self.symbol)
+                break
+            except ccxt.OrderNotFound:
+                await asyncio.sleep(0.5)
+            except ccxt.AuthenticationError:
+                break
+            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                await asyncio.sleep(0.5)
+            except Exception as _ex:
+                await asyncio.sleep(0.5)
+        for _ in range(self.retry):
+            try:
+                positions = await self.exchange.private_get_position(self.symbol)
+                break
+            except ccxt.OrderNotFound:
+                await asyncio.sleep(0.5)
+            except ccxt.AuthenticationError:
+                break
+            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                await asyncio.sleep(0.5)
+            except Exception as _ex:
+                await asyncio.sleep(0.5)
+        self.positions = list(filter(lambda p: p['isOpen'], positions))
+        for position in self.positions:
+            position['price'] = position['markPrice']
+            position['amount'] = position['currentQty']
+            position['side'] = 'sell' if position['amount'] < 0 else 'buy'
+
+        self._debug('check_everything', {'positions': self.positions, '_pst': positions, 'orders': orders})
+        for order in orders:
+            if order['id'] in orders_ids:
+                if not order.get('price'):
+                    order['price'] = order['info']['stopPx']
+                self.orders[order['id']] = order
+        await self.exchange.close()
+
     async def check_all_orders(self, orders_ids: list):
         self.load_exchange()
         for order_id in orders_ids:
@@ -143,7 +190,7 @@ class BmexClient:
                 if not order.get('price'):
                     order['price'] = order['info']['stopPx']
                 self.orders[order['id']] = order
-        # assert len(self.orders) == len(orders_ids), 'Length of orders you have not the same as in exchange'
+
         await self.exchange.close()
 
     async def _close_order(self, order_id: str):

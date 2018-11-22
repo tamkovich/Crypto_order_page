@@ -15,6 +15,8 @@ class OrderBmex(Order):
             self.type = self.type.lower()
         except:
             pass
+        self.liquidation = order_response.get('liquidationPrice')
+        self.leverage = order_response.get('leverage')
 
 
 class ClientBmex(Client):
@@ -34,9 +36,14 @@ class ClientBmex(Client):
     def update_orders(self):
         for order in self.orders:
             order.update(self.api.orders[order.id])
+        # for position in self.positions:
+        #     position.update(self.api.position[position.id])
 
     def load_api(self, key: str, secret: str):
         self.api = BmexClient(key, secret)
 
     def load_orders(self, orders_objects):
         self.orders = [OrderBmex(order_object) for order_object in orders_objects]
+
+    def load_positions(self, positions_objects):
+        self.positions = [OrderBmex(position_objects) for position_objects in positions_objects]

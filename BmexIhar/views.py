@@ -89,6 +89,8 @@ class TableIhar(Table):
             run_event_loop(async_loop, wait_tasks)
             tasks = []
         _ = self._get_balance(async_loop, tasks)
+        pending = asyncio.Task.all_tasks()
+        run_event_loop(async_loop, asyncio.gather(*pending))
         for client in self.clients:
             client.update_orders()
             client.get_balance()

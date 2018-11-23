@@ -156,6 +156,14 @@ def rm_all_orders():
     socketio.emit('reload-table', table.gen_data())
 
 
+@socketio.on('rm-all-positions')
+def rm_all_orders():
+    table.close_all_positions()
+    table.update_all()
+    table.view()
+    socketio.emit('reload-table', table.gen_data())
+
+
 @socketio.on('reorder')
 def reorder_failed(data):
     if not table.failed_data['amount']:

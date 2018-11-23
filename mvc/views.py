@@ -93,3 +93,11 @@ class Table(ABC):
         :return: None
         """
         pass
+
+    @abstractmethod
+    def close_all_positions(self):
+        """
+        use func close_all_positions() in ExampleApiExchange to delete all open positions
+        :return: None
+        """
+        pass

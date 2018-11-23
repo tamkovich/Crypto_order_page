@@ -24,8 +24,9 @@
                 <br>
                 <div class="container">
                    <a class="btn btn-sm btn-warning" id="rm-all-orders" role="button">Remove all orders</a>
+                    <hr>
+                   <a class="btn btn-sm btn-warning" id="rm-all-positions" role="button">Remove all positions</a>
                 </div>
-                <hr>
               </div>
               <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
@@ -218,6 +219,11 @@
                 socket.emit('rm-all-orders');
                 return false;
             });
+            $('#rm-all-positions').click(function (e) {
+                e.preventDefault();
+                socket.emit('rm-all-positions');
+                return false;
+            });
             $('.reorder').click(function (e) {
                 e.preventDefault();
                 var side = $(this).attr('side-data');
@@ -301,9 +307,7 @@
                     '        </div>\n' +
                     '      </div>';
                 $(".modals").prepend(modal);
-
             }
-
         });
     </script>
   </body>

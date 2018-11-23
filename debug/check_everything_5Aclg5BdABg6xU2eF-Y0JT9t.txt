@@ -1,3 +1,0 @@
-positions = []
-_pst = []
-orders = []

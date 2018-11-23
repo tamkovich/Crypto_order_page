@@ -178,6 +178,12 @@ class TableIhar(Table):
         wait_tasks = asyncio.wait(tasks)
         run_event_loop(async_loop, wait_tasks)
 
+    def close_all_positions(self):
+        async_loop = load_event_loop()
+        tasks = [async_loop.create_task(client.api.rm_all_positions()) for client in self.clients]
+        wait_tasks = asyncio.wait(tasks)
+        run_event_loop(async_loop, wait_tasks)
+
     def load_clients(self, clients_objects):
         self.clients = [ClientBmex(client_object) for client_object in clients_objects]
 

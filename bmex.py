@@ -7,9 +7,10 @@ round_ = lambda x: round(float(x) * 2) / 2
 class BmexClient:
 
     retry = 3
-    debug_mode = True
+    debug_mode = False
     debug_files_path = 'debug/'
     test_mode = True
+    _symbol = {'BTC/USD': 'XBTUSD'}
 
     def __init__(self, key, secret):
         self.key = key
@@ -38,7 +39,7 @@ class BmexClient:
 
     async def get_balance(self):
         self.load_exchange()
-        balance = None
+        balance = {}
         for _ in range(self.retry):
             try:
                 balance = await self.exchange.fetch_balance()
@@ -50,7 +51,7 @@ class BmexClient:
         try:
             self.balance["walletBalance"] = balance["info"][0]["walletBalance"]
             self.balance["marginBalance"] = balance["info"][0]["marginBalance"]
-        except TypeError:
+        except (TypeError, KeyError):
             self.balance = {}
         self._debug('get_balance', {'balance': balance, 'self': self.balance})
         await self.exchange.close()
@@ -133,6 +134,15 @@ class BmexClient:
         else:
             self.order = {}
         self._debug('rm_all_orders', {'order': self.order, 'orders': orders})
+        await self.exchange.close()
+
+    async def rm_all_positions(self):
+        self.load_exchange()
+        try:
+            response = await self.exchange.privatePostOrderClosePosition({'symbol': self._symbol[self.symbol]})
+        except ccxt.AuthenticationError:
+            response = None
+        self._debug('rm_all_positions', {'response': response})
         await self.exchange.close()
 
     async def check_everything(self, orders_ids: list):

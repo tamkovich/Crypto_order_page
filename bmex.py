@@ -165,7 +165,7 @@ class BmexClient:
                 await asyncio.sleep(0.5)
         self.positions = list(filter(lambda p: p['isOpen'], positions))
         for position in self.positions:
-            position['price'] = position['markPrice']
+            position['price'] = position['avgEntryPrice']
             position['amount'] = position['currentQty']
             position['side'] = 'sell' if position['amount'] < 0 else 'buy'
 

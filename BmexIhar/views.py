@@ -49,11 +49,11 @@ class TableIhar(Table):
         valid_price = self.check_price(async_loop, kwargs)
         tasks = []
         tasks = self._get_balance(async_loop, tasks)
-        balance = sum(c.balance for c in self.clients)
+        balance = sum(c.balance.get('walletBalance', 0) for c in self.clients)
         if valid_price:
             for client in self.clients:
                 # compute amount by share in balance
-                amount = int((client.balance / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
+                amount = int((client.balance.get('walletBalance', 0) / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
                 order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
                 order_kwargs['type'] = kwargs['type']
                 tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
@@ -67,12 +67,12 @@ class TableIhar(Table):
         async_loop = load_event_loop()
         tasks = []
         tasks = self._get_balance(async_loop, tasks)
-        balance = sum(c.balance if c.api.failed else 0 for c in self.clients)
+        balance = sum(c.balance.get('walletBalance', 0) if c.api.failed else 0 for c in self.clients)
         for client in self.clients:
             if client.api.failed:
                 client.api.failed = False
                 # compute amount by share in balance
-                amount = int((client.balance / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
+                amount = int((client.balance.get('walletBalance', 0) / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
                 order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
                 order_kwargs['type'] = kwargs['type']
                 tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
@@ -98,16 +98,19 @@ class TableIhar(Table):
             client.get_balance()
 
     def view(self):
-        self.balance = 0
+        self.marginBalance = 0
+        self.walletBalance = 0
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
-            self.table_data[i]['balance'] = round(client.balance, 4)
+            self.table_data[i]['walletBalance'] = round(client.balance.get('walletBalance', 0), 4)
+            self.table_data[i]['marginBalance'] = round(client.balance.get('marginBalance', 0), 4)
             self.table_data[i]['limits'] = [None] * self.col_orders
             self.table_data[i]['stops'] = [None] * self.col_orders
             limits = list(filter(lambda o: o.type == 'limit', client.orders))[:self.col_orders]
             stops = list(filter(lambda o: o.type == 'stop', client.orders))[:self.col_orders]
-            self.balance += client.balance
+            self.marginBalance += client.balance.get('walletBalance', 0)
+            self.walletBalance += client.balance.get('marginBalance', 0)
             for _j in range(self.col_orders):
                 # limit
                 try:
@@ -153,7 +156,8 @@ class TableIhar(Table):
         return {
             'data': self.table_data,
             'count': len(self.table_data),
-            'balance': round(self.balance, 4),
+            'marginBalance': round(self.marginBalance, 4),
+            'walletBalance': round(self.walletBalance, 4),
             'failed_data': self.failed_data,
         }
 

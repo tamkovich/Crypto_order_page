@@ -16,7 +16,7 @@ class BmexClient:
         self.secret = secret
         self.symbol = 'BTC/USD'
         self.failed = False
-        self.balance = 0
+        self.balance = {}
         self.order = {}
         self.exchange = None
         self.orders = dict()
@@ -48,9 +48,11 @@ class BmexClient:
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 await asyncio.sleep(0.5)
         try:
-            self.balance = balance["BTC"]["total"]
+            self.balance["walletBalance"] = balance["info"][0]["walletBalance"]
+            self.balance["marginBalance"] = balance["info"][0]["marginBalance"]
         except TypeError:
-            self.balance = 0
+            self.balance = {}
+        self._debug('get_balance', {'balance': balance, 'self': self.balance})
         await self.exchange.close()
 
     def _debug(self, filename, params={}):

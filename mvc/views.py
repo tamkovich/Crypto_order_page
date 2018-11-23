@@ -7,7 +7,8 @@ class Table(ABC):
 
     table_data = dict()
     clients = None
-    balance = 0
+    marginBalance = 0
+    walletBalance = 0
     error_msg = None
 
     def __init__(self):

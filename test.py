@@ -1,32 +1,36 @@
-import json
-from Order import Client
-import asyncio
+from BmexIhar.views import TableIhar
+
+table = TableIhar()
 
 
-def read_config():
-    with open('private/config_test.json', 'r') as f:
-        return json.load(f)
+def test_create_market_order():
+    table.add_order(type='Market', side='Sell', amount=10)
 
 
-def push_config(res):
-    with open('private/config_test.json', 'w') as f:
-        json.dump(res, f)
+def test_create_limit_order():
+    table.add_order(type='Limit', side='Buy', amount=10, price=6200)
+
+
+def test_create_stop_order():
+    table.add_order(type='Stop', side='Sell', amount=10, price=4400)
+
+
+def test_rm_all_orders():
+    table.close_all_orders()
+
+
+def test_add_client():
+    key = ''
+    secret = ''
+    table.add_client(key, secret)
+
+
+def test_update_table():
+    table.update_all()
+    table.view()
+    print(table.table_data)
 
 
 if __name__ == '__main__':
-    res = read_config()
-    clients = []
-    for acc in res['bitmex']:
-        clients.append(Client(acc['apiKey'], acc['secret']))
-    ioloop = asyncio.get_event_loop()
-    tasks = [ioloop.create_task(c.create_market_order('sell', 200)) for c in clients]
-    # tasks = [ioloop.create_task(c.get_current_position()) for c in clients]
-    wait_tasks = asyncio.wait(tasks)
-    ioloop.run_until_complete(wait_tasks)
-    ioloop.close()
-    for i in range(len(res)):
-        print(clients[i].response)
-        res['bitmex'][i]['current_order'] = clients[i].response
-
-    push_config(res)
-
+    test_create_stop_order()
+    test_update_table()

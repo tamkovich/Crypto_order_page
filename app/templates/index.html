@@ -70,8 +70,7 @@
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col">walletBalance</th>
-            <th scope="col">marginBalance</th>
+            <th scope="col">wallet/marginBalance</th>
 
             <th scope="col">Side</th>
             <th scope="col">Price</th>
@@ -142,8 +141,7 @@
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
                     clients_string += '<th scope="row">' + data[i]['username'] + '</th>';
-                    clients_string += '<td>' + data[i]["walletBalance"].toString() + '</td>';
-                    clients_string += '<td>' + data[i]["marginBalance"].toString() + '</td>';
+                    clients_string += '<td>' + data[i]["walletBalance"].toString() + '/' + data[i]["marginBalance"].toString() + '</td>';
                     clients_string += load_positions(data[i]['positions']);
                     load_modal(i, data[i]['positions']);
                     for (j = 0; j<data[i]["limits"].length; j++){
@@ -176,8 +174,7 @@
                 }
                 clients_string += '<tr>';
                 clients_string += '<th scope="row">:</th>';
-                clients_string += '<th scope="row">' + walletBalance.toString() + '</th>';
-                clients_string += '<th scope="row">' + marginBalance.toString() + '</th>';
+                clients_string += '<th scope="row">' + walletBalance.toString() + '/' + marginBalance.toString() + '</th>';
                 clients_string += '</tr>';
 
                 $(".client-table-body").html(clients_string);

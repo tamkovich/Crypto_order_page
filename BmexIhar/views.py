@@ -102,7 +102,7 @@ class TableIhar(Table):
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
-            self.table_data[i]['balance'] = round(client.balance, 5)
+            self.table_data[i]['balance'] = round(client.balance, 4)
             self.table_data[i]['limits'] = [None] * self.col_orders
             self.table_data[i]['stops'] = [None] * self.col_orders
             limits = list(filter(lambda o: o.type == 'limit', client.orders))[:self.col_orders]
@@ -153,7 +153,7 @@ class TableIhar(Table):
         return {
             'data': self.table_data,
             'count': len(self.table_data),
-            'balance': self.balance,
+            'balance': round(self.balance, 4),
             'failed_data': self.failed_data,
         }
 

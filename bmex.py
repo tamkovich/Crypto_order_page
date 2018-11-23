@@ -7,7 +7,7 @@ round_ = lambda x: round(float(x) * 2) / 2
 class BmexClient:
 
     retry = 3
-    debug_mode = False
+    debug_mode = True
     debug_files_path = 'debug/'
     test_mode = True
 

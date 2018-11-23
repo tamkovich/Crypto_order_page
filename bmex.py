@@ -50,8 +50,8 @@ class BmexClient:
             except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
                 await asyncio.sleep(0.5)
         try:
-            self.balance["walletBalance"] = balance["info"][0]["walletBalance"]
-            self.balance["marginBalance"] = balance["info"][0]["marginBalance"]
+            self.balance["walletBalance"] = balance["info"][0]["walletBalance"] / 100000000
+            self.balance["marginBalance"] = balance["info"][0]["marginBalance"] / 100000000
         except (TypeError, KeyError):
             self.balance = {}
         self._debug('get_balance', {'balance': balance, 'self': self.balance})

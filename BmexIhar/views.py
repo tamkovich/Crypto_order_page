@@ -5,6 +5,8 @@ from app.models import ClientModel, db
 from BmexIhar.models import ClientBmex
 from mvc.views import Table
 
+_round = lambda x: None if x is None else round(x, 1)
+
 
 class TableIhar(Table):
 
@@ -145,10 +147,10 @@ class TableIhar(Table):
             for position in client.positions:
                 self.table_data[i]['positions'].append(self._gen_position_structure(
                     position.side,
-                    position.price,
+                    _round(position.price),
                     position.amount,
-                    position.leverage,
-                    position.liquidation
+                    _round(position.leverage),
+                    _round(position.liquidation),
                 ))
         self._compose_failed()
 

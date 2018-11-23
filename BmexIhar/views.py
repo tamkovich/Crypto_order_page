@@ -43,6 +43,19 @@ class TableIhar(Table):
         db.session.add(client_object)
         db.session.commit()
         self.clients.append(ClientBmex(client_object))
+        self.update_clients_info()
+
+    def update_clients_info(self):
+        async_loop = load_event_loop()
+        tasks = [async_loop.create_task(client.api.update_user_info()) for client in self.clients]
+        wait_tasks = asyncio.wait(tasks)
+        run_event_loop(async_loop, wait_tasks)
+
+        for client in self.clients:
+            if client.api.email is not None and client.api.email != client.client_object.email:
+                client.email = client.api.email
+                client.client_object.email = client.api.email
+                db.session.commit()
 
     def add_order(self, **kwargs):
         async_loop = load_event_loop()
@@ -103,6 +116,7 @@ class TableIhar(Table):
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
+            self.table_data[i]['username'] = client.api.email
             self.table_data[i]['walletBalance'] = round(client.balance.get('walletBalance', 0), 4)
             self.table_data[i]['marginBalance'] = round(client.balance.get('marginBalance', 0), 4)
             self.table_data[i]['limits'] = [None] * self.col_orders

@@ -14,6 +14,7 @@ class Table(ABC):
     def __init__(self):
         clients_objects = ClientModel.query.all()
         self.load_clients(clients_objects)
+        self.update_clients_info()
 
     @abstractmethod
     def add_client(self, key: str, secret: str):
@@ -21,6 +22,15 @@ class Table(ABC):
         create client object in DataBase and load it
         :param key: key to create object in DataBase
         :param secret: secret to create object in DataBase
+        :return: None
+        """
+        pass
+
+    @abstractmethod
+    def update_clients_info(self):
+        """
+        Use every client's api.update_user_info method
+        to update info about them
         :return: None
         """
         pass

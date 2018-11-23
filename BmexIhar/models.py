@@ -40,8 +40,8 @@ class ClientBmex(Client):
         for i, position in enumerate(self.positions):
             position.update(self.api.positions[i])
 
-    def load_api(self, key: str, secret: str):
-        self.api = BmexClient(key, secret)
+    def load_api(self, key: str, secret: str, email: str):
+        self.api = BmexClient(key, secret, email)
 
     def load_orders(self, orders_objects):
         self.orders = [OrderBmex(order_object) for order_object in orders_objects]

@@ -141,7 +141,7 @@
 
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
-                    clients_string += '<th scope="row">' + i.toString() + '</th>';
+                    clients_string += '<th scope="row">' + data[i]['username'] + '</th>';
                     clients_string += '<td>' + data[i]["walletBalance"].toString() + '</td>';
                     clients_string += '<td>' + data[i]["marginBalance"].toString() + '</td>';
                     clients_string += load_positions(data[i]['positions']);

@@ -7,6 +7,7 @@ class ClientModel(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     apiKey = db.Column(db.String(100), unique=True)
     secret = db.Column(db.String(100), unique=True)
+    email = db.Column(db.String(100), default=None)
     failed = db.Column('failed', db.Boolean, default=False)
     order_exist = db.Column('order_exist', db.Boolean, default=False)
 
@@ -17,6 +18,7 @@ class ClientModel(db.Model):
         self.secret = secret
         self.open = open
         self.failed = failed
+        self.email = None
         self.order_exist = order_exist
 
 

@@ -31,17 +31,18 @@ class Order(ABC):
 
 class Client(ABC):
 
+    email = None
     api = None
     balance = None
     orders = None
     positions = []
 
     def __init__(self, client_object):
-        assert client_object, 'You have to create Client firstly'
         key = client_object.apiKey
         secret = client_object.secret
+        email = client_object.email
         self.client_object = client_object
-        self.load_api(key, secret)
+        self.load_api(key, secret, email)
         orders_objects = client_object.orders
         self.load_orders(orders_objects)
 
@@ -71,22 +72,13 @@ class Client(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def update_positions(self):
-    #     """
-    #     run from table-method update_all()
-    #     update all positions data
-    #     use order-method update()
-    #     :return: None
-    #     """
-    #     pass
-
     @abstractmethod
-    def load_api(self, key: str, secret: str):
+    def load_api(self, key: str, secret: str, email: str):
         """
         self.api = ExampleApi(key, secret)
-        :param key: key of exchange
-        :param secret: secret of exchange
+        :param key: <str> key of exchange
+        :param secret: <str> secret of exchange
+        :param email: <str> email from client exchange account
         :return: None
         """
         pass

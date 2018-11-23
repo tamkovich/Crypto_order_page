@@ -12,9 +12,10 @@ class BmexClient:
     test_mode = True
     _symbol = {'BTC/USD': 'XBTUSD'}
 
-    def __init__(self, key, secret):
+    def __init__(self, key, secret, email):
         self.key = key
         self.secret = secret
+        self.email = email
         self.symbol = 'BTC/USD'
         self.failed = False
         self.balance = {}
@@ -214,6 +215,17 @@ class BmexClient:
                 self.invalid_price = int(price) > current_price
             elif (type == 'Stop' and side == 'buy') or (type == 'Limit' and side == 'sell'):
                 self.invalid_price = int(price) < current_price
+        await self.exchange.close()
+
+    async def update_user_info(self):
+        self.load_exchange()
+        if self.email is None:
+            try:
+                response = await self.exchange.privateGetUser()
+                self.email = response['email']
+                self._debug('update_user_info', {'response': response})
+            except ccxt.AuthenticationError:
+                self.email = 'autherror@email'
         await self.exchange.close()
 
 

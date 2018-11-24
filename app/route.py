@@ -2,7 +2,6 @@ from flask import render_template, request, redirect, url_for, flash, session
 from flask_socketio import emit
 from functools import wraps
 from threading import Lock
-import sqlalchemy
 import gc
 
 from app.models import UserModel
@@ -88,8 +87,9 @@ def background_data():
     while True:
         table.update_all()
         table.view()
-        data = table.gen_data()
-        socketio.emit('reload-table', data)
+        print('---send---')
+        socketio.emit('reload-table', table.gen_data())
+        print('---check---')
         socketio.sleep(45)
 
 
@@ -134,16 +134,15 @@ def add_client(data):
     secret = secret.split('=')[-1]
     form = ClientForm(apiKey=key, secret=secret)
     if form.validate():
-        try:
-            table.add_client(key, secret)
+        table.add_client(key, secret)
+        if table.error_msg:
+            emit('data error', {'msg': table.error_msg, 'income': 'Client'})
+        else:
             table.update_all()
             table.view()
             emit('data success', {'msg': 'Successfully added!', 'income': 'Client!'})
             emit('reload-table', table.gen_data())
-            return
-        except sqlalchemy.exc.IntegrityError:
-            emit('data error', {'msg': 'already exists!', 'income': 'Client'})
-            return
+        return
     emit('data error', {'msg': 'fail!', 'income': 'Client'})
     return
 
@@ -159,6 +158,14 @@ def rm_all_orders():
 @socketio.on('rm-all-positions')
 def rm_all_orders():
     table.close_all_positions()
+    table.update_all()
+    table.view()
+    socketio.emit('reload-table', table.gen_data())
+
+
+@socketio.on('rm-client')
+def rm_all_orders(data):
+    table.set_unvisible_client(data)
     table.update_all()
     table.view()
     socketio.emit('reload-table', table.gen_data())

@@ -27,6 +27,15 @@ class Table(ABC):
         pass
 
     @abstractmethod
+    def set_unvisible_client(self, data: dict):
+        """
+        Removes client from the table and sets it as visible=False
+        :param data: <dict>
+        :return: None
+        """
+        pass
+
+    @abstractmethod
     def update_clients_info(self):
         """
         Use every client's api.update_user_info method

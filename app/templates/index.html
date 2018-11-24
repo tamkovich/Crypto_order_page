@@ -137,6 +137,7 @@
                 var failed_data = msg['failed_data'];
                 var clients_string = '';
                 var tit = '';
+                console.log(data);
 
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
@@ -170,6 +171,7 @@
                         } else tit += '-';
                         clients_string += '<td>' + tit + '</td>';
                     }
+                    clients_string += '<td><button type="button" class="btn btn-danger rm-client" id="'+data[i]["id"]+'">X</button></td>';
                     clients_string += '</tr>';
                 }
                 clients_string += '<tr>';
@@ -240,6 +242,12 @@
                 socket.emit('reorder', data);
                 return false;
             });
+            $('.rm-client').click(function (e) {
+                e.preventDefault();
+                var client_id = $(this).attr('id');
+                socket.emit('rm-client', {client_id: client_id});
+                return false;
+            });
             function load_positions(positions) {
                 var positions_tags = '';
                 if (positions.length > 0) {
@@ -256,54 +264,6 @@
                     positions_tags += '<td>-</td>';
                 }
                 return positions_tags;
-            }
-            function  load_modal(i, positions) {
-                var modal = '<div class="modal fade bd-positions-modal-'+i.toString()+'" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">\n' +
-                    '        <div class="modal-dialog modal-lg">\n' +
-                    '            <div class="modal-content">\n' +
-                    '                <div class="modal-header">\n' +
-                    '                    <h5 class="modal-title">Positions</h5>\n' +
-                    '                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">\n' +
-                    '                      <span aria-hidden="true">&times;</span>\n' +
-                    '                    </button>\n' +
-                    '                </div>\n' +
-                    '                <div class="modal-body">\n' +
-                    '                    <div class="table-responsive-lg">\n' +
-                    '                    <table class="table">\n' +
-                    '                        <thead>\n' +
-                    '                          <tr>\n' +
-                    '                            <th scope="col">#</th>\n' +
-                    '\n' +
-                    '                            <th scope="col">Side</th>\n' +
-                    '                            <th scope="col">Price</th>\n' +
-                    '                            <th scope="col">Amount</th>\n' +
-                    '                            <th scope="col">leverage</th>\n' +
-                    '                            <th scope="col">Liquidation</th>\n' +
-                    '                          </tr>\n' +
-                    '                        </thead>\n' +
-                    '                        <tbody class="position-table-body">';
-                modal += '<tr>';
-                for (j = 0; j < positions.length; j++) {
-                    modal += '<th scope="row">'+j.toString()+'</th>';
-
-                    modal += '<td>'+positions[j]["side"]+'</td>';
-                    modal += '<td>'+positions[j]["price"]+'</td>';
-                    modal += '<td>'+positions[j]["amount"]+'</td>';
-                    modal += '<td>'+positions[j]["leverage"]+'</td>';
-                    modal += '<td>'+positions[j]["liquidation"]+'</td>';
-                }
-                modal += '</tr>';
-                modal += '</tbody>\n' +
-                    '                    </table>\n' +
-                    '                    </div>\n' +
-                    '                    <div class="modal-footer">\n' +
-                    '                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>\n' +
-                    '                    </div>\n' +
-                    '                </div>\n' +
-                    '            </div>\n' +
-                    '        </div>\n' +
-                    '      </div>';
-                $(".modals").prepend(modal);
             }
         });
     </script>

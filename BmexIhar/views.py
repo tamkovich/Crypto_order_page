@@ -1,3 +1,4 @@
+import sqlalchemy.exc
 import asyncio
 import time
 
@@ -41,11 +42,29 @@ class TableIhar(Table):
         return tasks
 
     def add_client(self, key: str, secret: str):
-        client_object = ClientModel(key, secret)
-        db.session.add(client_object)
-        db.session.commit()
-        self.clients.append(ClientBmex(client_object))
-        self.update_clients_info()
+        self.error_msg = ''
+        try:
+            client_object = ClientModel(key, secret)
+            db.session.add(client_object)
+            db.session.commit()
+            self.clients.append(ClientBmex(client_object))
+            self.update_clients_info()
+        except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
+            cl = ClientModel.query.filter_by(apiKey=key, secret=secret, visible=False).first()
+            if cl:
+                cl.visible = True
+                db.session.commit()
+            else:
+                self.error_msg = 'already exist!'
+
+    def set_unvisible_client(self, data: dict):
+        for i, client in enumerate(self.clients):
+            if client.client_object.id == data['id']:
+                client.client_object.visible = False
+                db.session.commit()
+                _ = self.clients.pop(i)
+                break
 
     def update_clients_info(self):
         async_loop = load_event_loop()
@@ -118,6 +137,7 @@ class TableIhar(Table):
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
+            self.table_data[i]['id'] = client.client_object.id
             self.table_data[i]['username'] = client.api.email
             self.table_data[i]['walletBalance'] = round(client.balance.get('walletBalance', 0), 4)
             self.table_data[i]['marginBalance'] = round(client.balance.get('marginBalance', 0), 4)
@@ -201,7 +221,10 @@ class TableIhar(Table):
         run_event_loop(async_loop, wait_tasks)
 
     def load_clients(self, clients_objects):
-        self.clients = [ClientBmex(client_object) for client_object in clients_objects]
+        self.clients = []
+        for client_object in clients_objects:
+            if client_object.visible:
+                self.clients.append(ClientBmex(client_object))
 
 
 def load_event_loop():

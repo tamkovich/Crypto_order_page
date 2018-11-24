@@ -11,6 +11,8 @@ class ClientModel(db.Model):
     failed = db.Column('failed', db.Boolean, default=False)
     order_exist = db.Column('order_exist', db.Boolean, default=False)
 
+    visible = db.Column('visible', db.Boolean, default=True)
+
     orders = db.relationship("OrderModel", backref="client", lazy=True)
 
     def __init__(self, apiKey, secret, failed=False, order_exist=False):

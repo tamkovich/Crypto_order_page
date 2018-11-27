@@ -115,10 +115,8 @@ class TableIhar(Table):
         for client in self.clients:
             orders_ids = list(map(lambda o: o.id, client.orders))
             tasks.append(async_loop.create_task(client.api.check_everything(orders_ids)))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
-            tasks = []
+        run_event_loop(async_loop, tasks)
+        tasks = []
         _ = self._get_balance(async_loop, tasks)
         pending = asyncio.Task.all_tasks()
         run_event_loop(async_loop, asyncio.gather(*pending), preload=True)

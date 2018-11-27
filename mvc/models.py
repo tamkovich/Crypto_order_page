@@ -33,7 +33,7 @@ class Client(ABC):
 
     email = None
     api = None
-    balance = None
+    balance = {}
     orders = None
     positions = []
 

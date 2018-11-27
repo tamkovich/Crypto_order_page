@@ -7,7 +7,7 @@ round_ = lambda x: round(float(x) * 2) / 2
 class BmexClient:
 
     retry = 3
-    debug_mode = False
+    debug_mode = True
     debug_files_path = 'debug/'
     test_mode = True
     _symbol = {'BTC/USD': 'XBTUSD'}
@@ -181,6 +181,9 @@ class BmexClient:
             position['price'] = position['avgEntryPrice']
             position['amount'] = position['currentQty']
             position['side'] = 'sell' if position['amount'] < 0 else 'buy'
+            if position['crossMargin'] is True:
+                await self._calc_leverage()
+                position['leverage'] = self.balance['marginLeverage']
 
         self._debug('check_everything', {'positions': self.positions, '_pst': positions, 'orders': orders})
         for order in orders:
@@ -216,6 +219,21 @@ class BmexClient:
             elif (type == 'Stop' and side == 'buy') or (type == 'Limit' and side == 'sell'):
                 self.invalid_price = int(price) < current_price
         await self.exchange.close()
+
+    async def _calc_leverage(self):
+        balance = {}
+        for _ in range(self.retry):
+            try:
+                balance = await self.exchange.fetch_balance()
+                break
+            except ccxt.AuthenticationError:
+                break
+            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
+                await asyncio.sleep(0.5)
+        try:
+            self.balance["marginLeverage"] = balance["info"][0]["marginLeverage"]
+        except (TypeError, KeyError):
+            pass
 
     async def update_user_info(self):
         self.load_exchange()

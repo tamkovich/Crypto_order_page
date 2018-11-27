@@ -163,7 +163,7 @@ class TableIhar(Table):
                     position.side,
                     _round(position.price),
                     position.amount,
-                    _round(position.leverage),
+                    round(position.leverage, 2),
                     _round(position.liquidation),
                 ))
         self._compose_failed()

@@ -145,7 +145,6 @@
                 var failed_data = msg['failed_data'];
                 var clients_string = '';
                 var tit = '';
-                console.log(data);
 
                 for (i = 0; i < count; i++) {
                     clients_string += '<tr>';
@@ -187,7 +186,6 @@
                 clients_string += '</tr>';
 
                 $(".client-table-body").html(clients_string);
-                console.log(failed_data);
 
                 if (failed_data['type'] == 'Active') {
                     failed_data['type'] = $(".tab-pane.fade.show.active").attr('order-type');
@@ -250,7 +248,7 @@
                 socket.emit('reorder', data);
                 return false;
             });
-            $('.btn.btn-danger.rm-client').click(function (e) {
+            $('.rm-client').click(function (e) {
                 console.log('rm-client');
                 e.preventDefault();
                 var client_id = $(this).attr('id');
@@ -275,6 +273,13 @@
                 }
                 return positions_tags;
             }
+            $(document).on('click', '.rm-client', function() {
+                console.log('rm-client');
+                var client_id = $(this).attr('id');
+                console.log(client_id);
+                socket.emit('rm-client', {client_id: client_id});
+                return false;
+            });
         });
     </script>
   </body>

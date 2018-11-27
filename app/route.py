@@ -163,7 +163,6 @@ def rm_all_orders():
 
 @socketio.on('rm-client')
 def rm_all_orders(data):
-    print(data)
     table.set_unvisible_client(data)
     table.update_all()
     table.view()

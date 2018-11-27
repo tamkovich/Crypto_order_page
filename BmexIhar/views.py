@@ -60,8 +60,10 @@ class TableIhar(Table):
 
     def set_unvisible_client(self, data: dict):
         for i, client in enumerate(self.clients):
-            if client.client_object.id == data['id']:
+            if client.client_object.id == int(data['client_id']):
                 client.client_object.visible = False
+                cl = ClientModel.query.filter_by(id=client.client_object.id).first()
+                cl.visible = False
                 db.session.commit()
                 _ = self.clients.pop(i)
                 break
@@ -135,6 +137,7 @@ class TableIhar(Table):
         self.marginBalance = 0
         self.walletBalance = 0
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
+        self.table_data = dict()
         for i, client in enumerate(self.clients):
             self.table_data[i] = dict()
             self.table_data[i]['id'] = client.client_object.id

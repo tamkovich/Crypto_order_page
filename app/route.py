@@ -87,10 +87,8 @@ def background_data():
     while True:
         table.update_all()
         table.view()
-        print('---send---')
         socketio.emit('reload-table', table.gen_data())
-        print('---check---')
-        socketio.sleep(45)
+        socketio.sleep(20)
 
 
 @socketio.on('connect')
@@ -165,6 +163,7 @@ def rm_all_orders():
 
 @socketio.on('rm-client')
 def rm_all_orders(data):
+    print(data)
     table.set_unvisible_client(data)
     table.update_all()
     table.view()

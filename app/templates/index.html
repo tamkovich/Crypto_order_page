@@ -107,6 +107,14 @@
             socket.on('connect', function () {
                 socket.emit('my event', {data: 'I\'m connected!'});
             });
+            function RmClient(elem, client_id){
+                console.log('rm-client');
+                e.preventDefault();
+                var client_id = $(this).attr('id');
+                console.log(client_id);
+                socket.emit('rm-client', {client_id: client_id});
+                return false;
+            }
 
             socket.on('my response', function (msg) {
                 //
@@ -144,7 +152,6 @@
                     clients_string += '<th scope="row">' + data[i]['username'] + '</th>';
                     clients_string += '<td>' + data[i]["walletBalance"].toString() + '/' + data[i]["marginBalance"].toString() + '</td>';
                     clients_string += load_positions(data[i]['positions']);
-                    load_modal(i, data[i]['positions']);
                     for (j = 0; j<data[i]["limits"].length; j++){
                         tit = '';
                         if (data[i]["limits"][j]["side"]) {
@@ -190,6 +197,7 @@
                     $('#price-' + failed_data['type']).value = failed_data['price'].toString();
                 }
             });
+
             $('.add-client').click(function (e) {
                 socket.emit('add-client', {form: $('.add-client-form').serialize()});
                 return false;
@@ -242,9 +250,11 @@
                 socket.emit('reorder', data);
                 return false;
             });
-            $('.rm-client').click(function (e) {
+            $('.btn.btn-danger.rm-client').click(function (e) {
+                console.log('rm-client');
                 e.preventDefault();
                 var client_id = $(this).attr('id');
+                console.log(client_id);
                 socket.emit('rm-client', {client_id: client_id});
                 return false;
             });

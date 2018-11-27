@@ -35,11 +35,8 @@ class TableIhar(Table):
     def _get_balance(self, async_loop, tasks):
         for client in self.clients:
             tasks.append(async_loop.create_task(client.api.get_balance()))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
-            tasks = []
-        return tasks
+        run_event_loop(async_loop, tasks)
+        return []
 
     def add_client(self, key: str, secret: str):
         self.error_msg = ''
@@ -71,8 +68,7 @@ class TableIhar(Table):
     def update_clients_info(self):
         async_loop = load_event_loop()
         tasks = [async_loop.create_task(client.api.update_user_info()) for client in self.clients]
-        wait_tasks = asyncio.wait(tasks)
-        run_event_loop(async_loop, wait_tasks)
+        run_event_loop(async_loop, tasks)
 
         for client in self.clients:
             if client.api.email is not None and client.api.email != client.client_object.email:
@@ -93,8 +89,7 @@ class TableIhar(Table):
                 order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
                 order_kwargs['type'] = kwargs['type']
                 tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
+            run_event_loop(async_loop, tasks)
 
             for client in self.clients:
                 client.create_order()
@@ -112,9 +107,7 @@ class TableIhar(Table):
                 order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
                 order_kwargs['type'] = kwargs['type']
                 tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
+        run_event_loop(async_loop, tasks)
 
     def update_all(self):
         async_loop = load_event_loop()
@@ -128,7 +121,7 @@ class TableIhar(Table):
             tasks = []
         _ = self._get_balance(async_loop, tasks)
         pending = asyncio.Task.all_tasks()
-        run_event_loop(async_loop, asyncio.gather(*pending))
+        run_event_loop(async_loop, asyncio.gather(*pending), preload=True)
         for client in self.clients:
             client.update_orders()
             client.get_balance()
@@ -203,9 +196,7 @@ class TableIhar(Table):
     def check_price(self, async_loop, kwargs):
         self.error_msg = ''
         tasks = [async_loop.create_task(self.clients[0].api.current_price(**kwargs))]
-        if tasks:
-            wait_tasks = asyncio.wait(tasks)
-            run_event_loop(async_loop, wait_tasks)
+        run_event_loop(async_loop, tasks)
         if self.clients[0].api.invalid_price:
             self.error_msg = 'Invalid Price'
             return False
@@ -214,14 +205,12 @@ class TableIhar(Table):
     def close_all_orders(self):
         async_loop = load_event_loop()
         tasks = [async_loop.create_task(client.api.rm_all_orders()) for client in self.clients]
-        wait_tasks = asyncio.wait(tasks)
-        run_event_loop(async_loop, wait_tasks)
+        run_event_loop(async_loop, tasks)
 
     def close_all_positions(self):
         async_loop = load_event_loop()
         tasks = [async_loop.create_task(client.api.rm_all_positions()) for client in self.clients]
-        wait_tasks = asyncio.wait(tasks)
-        run_event_loop(async_loop, wait_tasks)
+        run_event_loop(async_loop, tasks)
 
     def load_clients(self, clients_objects):
         self.clients = []
@@ -246,16 +235,19 @@ def load_event_loop():
             time.sleep(3)
 
 
-def run_event_loop(async_loop, wait_tasks):
+def run_event_loop(async_loop, tasks, preload=False):
     """
     runs event loop, just when it will be possible and none of other loops existing
     :param async_loop: event loop which have to be execute
-    :param wait_tasks: tasks which event loop will run
+    :param tasks: tasks which event loop will run
+    :param preload: <bool> False by default if func gets only list of tasks. True if wait tasks or gather tasks
     :return: None
     """
-    while True:
-        try:
-            async_loop.run_until_complete(wait_tasks)
-            break
-        except RuntimeError:
-            time.sleep(3)
+    if tasks:
+        wait_tasks = tasks if preload else asyncio.wait(tasks)
+        while True:
+            try:
+                async_loop.run_until_complete(wait_tasks)
+                break
+            except RuntimeError:
+                time.sleep(3)

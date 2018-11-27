@@ -52,6 +52,7 @@ class TableIhar(Table):
             if cl:
                 cl.visible = True
                 db.session.commit()
+                self.clients.append(ClientBmex(cl))
             else:
                 self.error_msg = 'already exist!'
 

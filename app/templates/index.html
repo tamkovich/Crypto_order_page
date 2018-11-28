@@ -142,6 +142,7 @@
                 var count = msg['count'];
                 var walletBalance = msg['walletBalance'];
                 var marginBalance = msg['marginBalance'];
+                var amount = msg['amount'];
                 var failed_data = msg['failed_data'];
                 var clients_string = '';
                 var tit = '';
@@ -183,6 +184,9 @@
                 clients_string += '<tr>';
                 clients_string += '<th scope="row">:</th>';
                 clients_string += '<th scope="row">' + walletBalance.toString() + '/' + marginBalance.toString() + '</th>';
+                clients_string += '<th scope="row">-</th>';
+                clients_string += '<th scope="row">-</th>';
+                clients_string += '<th scope="row">' + amount.toString() + '</th>';
                 clients_string += '</tr>';
 
                 $(".client-table-body").html(clients_string);

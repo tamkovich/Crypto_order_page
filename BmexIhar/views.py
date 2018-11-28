@@ -128,6 +128,7 @@ class TableIhar(Table):
     def view(self):
         self.marginBalance = 0
         self.walletBalance = 0
+        self.amount = 0
         self.failed_data = {'amount': '', 'price': '', 'type': ''}
         self.table_data = dict()
         for i, client in enumerate(self.clients):
@@ -167,6 +168,7 @@ class TableIhar(Table):
                     round(position.leverage, 2),
                     _round(position.liquidation),
                 ))
+                self.amount += position.amount
         self._compose_failed()
 
     def _compose_failed(self):
@@ -190,6 +192,7 @@ class TableIhar(Table):
             'marginBalance': round(self.marginBalance, 4),
             'walletBalance': round(self.walletBalance, 4),
             'failed_data': self.failed_data,
+            'amount': self.amount,
         }
 
     def check_price(self, async_loop, kwargs):

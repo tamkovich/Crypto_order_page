@@ -176,8 +176,8 @@ class TableIhar(Table):
         for client in self.clients:
             if client.api.failed:
                 amount += client.api.order.get('amount', 0)
-                price = client.api.order['price']
-                order_type = client.api.order['order_type']
+                price = client.api.order.get('price', 0)
+                order_type = client.api.order.get('order_type', '')
                 print(client.api.order)
         self.failed_data['amount'] = amount
         self.failed_data['price'] = price

@@ -2,10 +2,15 @@ from app.models import OrderModel, db
 from mvc.models import Order, Client
 from bmex import BmexClient
 
+from loggers import get_logger
+
+logger = get_logger('BmexIhar.models')
+
 
 class OrderBmex(Order):
 
     def update(self, order_response: dict):
+        logger.info(f'OrderBmex.update {order_response}')
         self.symbol = order_response.get('symbol')
         self.amount = order_response.get('amount')
         self.price = order_response.get('price')
@@ -23,8 +28,9 @@ class ClientBmex(Client):
 
     def create_order(self):
         if self.api.failed:
-            pass
+            logger.info('ClientBmex.create_order api failed')
         else:
+            logger.info(f'ClientBmex.create_order api order {self.api.order["id"]}')
             order = OrderModel(order_exchange_id=self.api.order['id'], client=self.client_object)
             db.session.add(order)
             db.session.commit()

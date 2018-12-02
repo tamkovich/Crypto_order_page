@@ -6,6 +6,10 @@ from app.models import ClientModel, db
 from BmexIhar.models import ClientBmex
 from mvc.views import Table
 
+from loggers import get_logger
+
+logger = get_logger('BmexIhar.views')
+
 _round = lambda x: None if x is None else round(x, 1)
 
 
@@ -186,7 +190,7 @@ class TableIhar(Table):
         self.failed_data['type'] = order_type.capitalize()
 
     def gen_data(self):
-        return {
+        response = {
             'data': self.table_data,
             'count': len(self.table_data),
             'marginBalance': round(self.marginBalance, 4),
@@ -194,6 +198,8 @@ class TableIhar(Table):
             'failed_data': self.failed_data,
             'amount': self.amount,
         }
+        logger.info(f'RETURN {response}')
+        return response
 
     def check_price(self, async_loop, kwargs):
         self.error_msg = ''

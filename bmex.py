@@ -1,13 +1,16 @@
 import ccxt.async_support as ccxt
 import asyncio
 
+from loggers import get_logger
+
+logger = get_logger('bmex')
 round_ = lambda x: round(float(x) * 2) / 2
 
 
 class BmexClient:
 
     retry = 3
-    debug_mode = True
+    debug_mode = False
     debug_files_path = 'debug/'
     test_mode = True
     _symbol = {'BTC/USD': 'XBTUSD'}
@@ -102,9 +105,8 @@ class BmexClient:
             self._debug(f'create_{self.order.get("type")}_order', {'order': self.order})
 
     async def create_order(self, type, side, amount, price=None):
+        logger.info(f'GET {type}|{side}|{amount}|{price}')
         self.load_exchange()
-        # assert type in ['Stop', 'Market', 'Limit'], 'There is no such order-type. ' \
-        #                                             'Valid order types: [Stop, Market, Limit]'
         if type == 'Market':
             await self._create_order(type, side, amount, price)
         else:
@@ -113,14 +115,7 @@ class BmexClient:
                 await self._create_order(type, side, amount, None, params=params)
             else:
                 await self._create_order(type, side, amount, price)
-
-        if self.failed:
-            self.order = {
-                'order_type': type,
-                'side': side,
-                'amount': amount,
-                'price': price,
-            }
+        logger.info(f'RETURN {self.order}')
         await self.exchange.close()
 
     async def rm_all_orders(self):

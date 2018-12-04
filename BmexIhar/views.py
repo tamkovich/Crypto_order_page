@@ -38,8 +38,9 @@ class TableIhar(Table):
 
     def _get_balance(self, async_loop, tasks):
         for client in self.clients:
-            tasks.append(async_loop.create_task(client.api.get_balance()))
-        run_event_loop(async_loop, tasks)
+            client.api.redis_get_balance()
+        #     tasks.append(async_loop.create_task(client.api.get_balance()))
+        # run_event_loop(async_loop, tasks)
         return []
 
     def add_client(self, key: str, secret: str):
@@ -152,8 +153,8 @@ class TableIhar(Table):
             self.table_data[i]['stops'] = [None] * self.col_orders
             limits = list(filter(lambda o: o.type == 'limit', client.orders))[:self.col_orders]
             stops = list(filter(lambda o: o.type == 'stop', client.orders))[:self.col_orders]
-            self.marginBalance += client.balance.get('walletBalance', 0)
-            self.walletBalance += client.balance.get('marginBalance', 0)
+            self.walletBalance += client.balance.get('walletBalance', 0)
+            self.marginBalance += client.balance.get('marginBalance', 0)
             for _j in range(self.col_orders):
                 # limit
                 try:

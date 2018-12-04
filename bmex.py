@@ -1,10 +1,12 @@
 import ccxt.async_support as ccxt
 import asyncio
+import redis
 
 from loggers import get_logger
 
 logger = get_logger('bmex')
 round_ = lambda x: round(float(x) * 2) / 2
+r = redis.StrictRedis(host='localhost', charset="utf-8", port=6379, db=0)
 
 
 class BmexClient:
@@ -40,6 +42,13 @@ class BmexClient:
             if 'test' in self.exchange.urls:
                 self.exchange.urls['api'] = self.exchange.urls['test']
         self.exchange.open()
+
+    def redis_get_balance(self):
+        """
+        Fetch walletBalance and marginBalance from Redis
+        """
+        self.balance['walletBalance'] = eval(r.get(f'margin:{self.key}:walletBalance'))
+        self.balance['marginBalance'] = eval(r.get(f'margin:{self.key}:marginBalance'))
 
     async def get_balance(self):
         self.load_exchange()

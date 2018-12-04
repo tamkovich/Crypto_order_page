@@ -50,6 +50,13 @@ class TableIhar(Table):
             db.session.commit()
             self.clients.append(ClientBmex(client_object))
             self.update_clients_info()
+            for client in self.clients:
+                similar_clients = ClientModel.query.filter_by(email=client.client_object.email, visible=True).all()
+                print(similar_clients)
+                if len(similar_clients):
+                    for i in range(len(similar_clients)-2):
+                        similar_clients[i].visible = False
+                    db.session.commit()
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
             cl = ClientModel.query.filter_by(apiKey=key, secret=secret, visible=False).first()
@@ -172,7 +179,7 @@ class TableIhar(Table):
                     round(position.leverage, 2),
                     _round(position.liquidation),
                 ))
-                self.amount += position.amount
+                self.amount += abs(position.amount)
         self._compose_failed()
 
     def _compose_failed(self):
@@ -223,7 +230,7 @@ class TableIhar(Table):
     def load_clients(self, clients_objects):
         self.clients = []
         for client_object in clients_objects:
-            if client_object.visible:
+            if client_object.visible and client_object.email != 'autherror@email':
                 self.clients.append(ClientBmex(client_object))
 
 

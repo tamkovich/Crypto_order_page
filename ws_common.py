@@ -9,12 +9,12 @@ import redis
 
 from util_.ws_util import *
 
-NAMESPACE = "ws_tickmex"
+NAMESPACE = "ws_common"
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename=f'{NAMESPACE}.log')
 logger = logging.getLogger(__name__)
 
-r = redis.StrictRedis(host='localhost',charset="utf-8", port=6379, db=0)
+r = redis.StrictRedis(host='localhost', charset="utf-8", port=6379, db=0)
 
 
 def find_by_keys(keys, rows, match):
@@ -37,13 +37,14 @@ class BitMEXWebsocket:
     # Don't grow a table larger than this amount. Helps cap memory usage.
     MAX_TABLE_LEN = 200
 
-    def __init__(self, endpoint, symbol, api_key=None, api_secret=None):
+    def __init__(self, endpoint, symbol, subs, api_key=None, api_secret=None):
         """Connect to the websocket and initialize data stores."""
         self.logger = logging.getLogger(NAMESPACE)
         self.logger.debug("Initializing WebSocket.")
 
         self.endpoint = endpoint
         self.symbol = symbol
+        self.subs = subs
         self.api_key = api_key
         self.api_secret = api_secret
 
@@ -135,13 +136,13 @@ class BitMEXWebsocket:
         """
 
         # You can sub to orderBookL2 for all levels, or orderBook10 for top 10 levels & save bandwidth
-        symbolSubs = ["margin"]
         # subscriptions = [sub + ":" + self.symbol for sub in symbolSubs]
-        subscriptions = symbolSubs
 
         urlParts = list(urllib.parse.urlparse(self.endpoint))
         urlParts[0] = urlParts[0].replace("http", "ws")
-        urlParts[2] = "/realtime?subscribe={}".format(",".join(subscriptions))
+        urlParts[2] = "/realtime?subscribe={}".format(",".join(self.subs))
+        print(self.subs)
+        print(urlParts)
         return urllib.parse.urlunparse(urlParts)
 
     def __wait_for_symbol(self, symbol):
@@ -159,6 +160,7 @@ class BitMEXWebsocket:
         """Handler for parsing WS messages."""
         # timestamp = time.time()
         message = json.loads(message)
+        print(message)
         self.logger.debug(json.dumps(message))
 
         table = message.get("table")

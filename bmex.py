@@ -47,8 +47,13 @@ class BmexClient:
         """
         Fetch walletBalance and marginBalance from Redis
         """
-        self.balance['walletBalance'] = eval(r.get(f'margin:{self.key}:walletBalance'))
-        self.balance['marginBalance'] = eval(r.get(f'margin:{self.key}:marginBalance'))
+        wb = r.get(f'margin:{self.key}:walletBalance')
+        mb = r.get(f'margin:{self.key}:marginBalance')
+        print(wb, mb)
+        if wb:
+            self.balance['walletBalance'] = eval(wb)
+        if mb:
+            self.balance['marginBalance'] = eval(mb)
 
     async def get_balance(self):
         self.load_exchange()

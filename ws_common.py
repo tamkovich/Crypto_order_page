@@ -141,8 +141,6 @@ class BitMEXWebsocket:
         urlParts = list(urllib.parse.urlparse(self.endpoint))
         urlParts[0] = urlParts[0].replace("http", "ws")
         urlParts[2] = "/realtime?subscribe={}".format(",".join(self.subs))
-        print(self.subs)
-        print(urlParts)
         return urllib.parse.urlunparse(urlParts)
 
     def __wait_for_symbol(self, symbol):
@@ -160,7 +158,6 @@ class BitMEXWebsocket:
         """Handler for parsing WS messages."""
         # timestamp = time.time()
         message = json.loads(message)
-        print(message)
         self.logger.debug(json.dumps(message))
 
         table = message.get("table")

@@ -49,7 +49,6 @@ class BmexClient:
         """
         wb = r.get(f'margin:{self.key}:walletBalance')
         mb = r.get(f'margin:{self.key}:marginBalance')
-        print(wb, mb)
         if wb:
             self.balance['walletBalance'] = eval(wb)
         if mb:

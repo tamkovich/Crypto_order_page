@@ -2,10 +2,12 @@ import sqlalchemy.exc
 import asyncio
 import time
 
+
 from app.models import ClientModel, db
 from BmexIhar.models import ClientBmex
 from mvc.views import Table
 
+from private.redis_conn import r
 from loggers import get_logger
 
 logger = get_logger('BmexIhar.views')
@@ -36,11 +38,9 @@ class TableIhar(Table):
             'liquidation': liquidation,
         }
 
-    def _get_balance(self, async_loop, tasks):
+    def _get_balance(self, *args, **kwargs):
         for client in self.clients:
             client.api.redis_get_balance()
-        #     tasks.append(async_loop.create_task(client.api.get_balance()))
-        # run_event_loop(async_loop, tasks)
         return []
 
     def add_client(self, key: str, secret: str):
@@ -49,15 +49,17 @@ class TableIhar(Table):
             client_object = ClientModel(key, secret)
             db.session.add(client_object)
             db.session.commit()
+            r.set('client_id', client_object.id)
             self.clients.append(ClientBmex(client_object))
             self.update_clients_info()
             for client in self.clients:
                 similar_clients = ClientModel.query.filter_by(email=client.client_object.email, visible=True).all()
-                print(similar_clients)
                 if len(similar_clients):
-                    for i in range(len(similar_clients)-2):
+                    for i in range(len(similar_clients)-1):
                         similar_clients[i].visible = False
+                        self.error_msg = 'already exist!'
                     db.session.commit()
+            self.clients = list(filter(lambda c: c.client_object.visible, self.clients))
         except sqlalchemy.exc.IntegrityError:
             db.session.rollback()
             cl = ClientModel.query.filter_by(apiKey=key, secret=secret, visible=False).first()
@@ -65,6 +67,14 @@ class TableIhar(Table):
                 cl.visible = True
                 db.session.commit()
                 self.clients.append(ClientBmex(cl))
+                for client in self.clients:
+                    similar_clients = ClientModel.query.filter_by(email=client.client_object.email, visible=True).all()
+                    if len(similar_clients):
+                        for i in range(len(similar_clients) - 1):
+                            similar_clients[i].visible = False
+                            self.error_msg = 'already exist!'
+                        db.session.commit()
+                self.clients = list(filter(lambda c: c.client_object.visible, self.clients))
             else:
                 self.error_msg = 'already exist!'
 

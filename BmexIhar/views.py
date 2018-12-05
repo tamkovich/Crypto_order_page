@@ -67,6 +67,7 @@ class TableIhar(Table):
                 cl.visible = True
                 db.session.commit()
                 self.clients.append(ClientBmex(cl))
+                self.update_clients_info()
                 for client in self.clients:
                     similar_clients = ClientModel.query.filter_by(email=client.client_object.email, visible=True).all()
                     if len(similar_clients):

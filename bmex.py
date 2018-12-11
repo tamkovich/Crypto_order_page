@@ -1,12 +1,11 @@
 import ccxt.async_support as ccxt
 import asyncio
-import redis
 
+from private.redis_conn import r
 from loggers import get_logger
 
 logger = get_logger('bmex')
 round_ = lambda x: round(float(x) * 2) / 2
-r = redis.StrictRedis(host='localhost', charset="utf-8", port=6379, db=0)
 
 
 class BmexClient:
@@ -142,7 +141,7 @@ class BmexClient:
         """
         for order_id in orders_ids:
             self.orders[order_id] = dict()
-        positions = r.get(f'position:{self.key}')
+        positions = r.hget(f"position:{self.key}", "data")
         positions = [eval(positions)] if positions else []
         self.positions = list(filter(lambda p: p['isOpen'], positions))
         for position in self.positions:
@@ -152,6 +151,17 @@ class BmexClient:
             if position['crossMargin'] is True:
                 position['leverage'] = r.get(f"margin:{self.key}:marginLeverage")
                 position['leverage'] = eval(position['leverage']) if position['leverage'] else None
+        orders_keys = r.keys(f'order:{self.key}:*')
+        orders = list(map(lambda key: eval(r.hget(key, "data")), orders_keys))
+        for order in orders:
+            if order['ordStatus'] in ['Filled', 'Canceled']:
+                continue
+            if order['orderID'] in orders_ids:
+                if not order.get('price'):
+                    order['price'] = order['stopPx']
+                order['type'] = order['ordType']
+                order['amount'] = order['orderQty']
+                self.orders[order['orderID']] = order
 
     async def check_everything(self, orders_ids: list):
         self.load_exchange()

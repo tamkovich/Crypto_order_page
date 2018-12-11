@@ -93,11 +93,14 @@ def background_data():
 
 @socketio.on('connect')
 @table_loader
-def test_connect():
+def socket_connect():
     global thread
     with thread_lock:
         if thread is None:
             thread = socketio.start_background_task(target=background_data)
+        else:
+            table.view()
+            socketio.emit('reload-table', table.gen_data())
     emit('my response', {'data': 'Connected', 'count': 0})
 
 

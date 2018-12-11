@@ -140,7 +140,18 @@ class BmexClient:
         Updates every order and positions info. Note, that it updates only
         those orders which were created from the current service/application.
         """
-
+        for order_id in orders_ids:
+            self.orders[order_id] = dict()
+        positions = r.get(f'position:{self.key}')
+        positions = [eval(positions)] if positions else []
+        self.positions = list(filter(lambda p: p['isOpen'], positions))
+        for position in self.positions:
+            position['price'] = position['avgEntryPrice']
+            position['amount'] = position['currentQty']
+            position['side'] = 'sell' if position['amount'] < 0 else 'buy'
+            if position['crossMargin'] is True:
+                position['leverage'] = r.get(f"margin:{self.key}:marginLeverage")
+                position['leverage'] = eval(position['leverage']) if position['leverage'] else None
 
     async def check_everything(self, orders_ids: list):
         self.load_exchange()

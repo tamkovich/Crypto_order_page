@@ -9,7 +9,7 @@ NAMESPACE = "run_ws"
 
 endpoint = "wss://testnet.bitmex.com/realtime"
 symbols = ["XBTUSD"]
-subs = ["margin", "order"]
+subs = ["margin", "order", "position"]
 
 
 def client_ws(client):

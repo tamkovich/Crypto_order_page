@@ -54,25 +54,6 @@ class BmexClient:
         if mb:
             self.balance['marginBalance'] = eval(mb)
 
-    async def get_balance(self):
-        self.load_exchange()
-        balance = {}
-        for _ in range(self.retry):
-            try:
-                balance = await self.exchange.fetch_balance()
-                break
-            except ccxt.AuthenticationError:
-                break
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                await asyncio.sleep(0.5)
-        try:
-            self.balance["walletBalance"] = balance["info"][0]["walletBalance"] / 100000000
-            self.balance["marginBalance"] = balance["info"][0]["marginBalance"] / 100000000
-        except (TypeError, KeyError):
-            self.balance = {}
-        self._debug('get_balance', {'balance': balance, 'self': self.balance})
-        await self.exchange.close()
-
     def _debug(self, filename, params={}):
         if self.debug_mode:
             with open(f'{self.debug_files_path}{filename}_{self.key}.txt', 'w') as f:

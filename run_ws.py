@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 endpoint = "wss://testnet.bitmex.com/realtime"
 symbols = ["XBTUSD"]
-subs = ["margin"]
+subs = ["margin", "order"]
 
 
 def client_ws(client):

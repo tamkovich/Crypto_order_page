@@ -71,6 +71,8 @@ class BitMEXWebsocket:
         self.ws.close()
 
     def man(self, message, table):
+        if table == 'order':
+            print(message)
         for mess in message["data"]:
             if table == 'margin':
                 if mess.get("walletBalance"):
@@ -99,6 +101,17 @@ class BitMEXWebsocket:
             self.logger.info("Not authenticating.")
             return []
 
+    def _dirty_reconnect(self, ws):
+        _sleeps = 3
+        while True:
+            try:
+                ws.run_forever()
+                _sleeps = 3
+                time.sleep(_sleeps)
+            except:
+                _sleeps = 5
+                time.sleep(_sleeps)
+
     def __connect(self, wsURL, symbol):
         """Connect to the websocket in a thread."""
         self.logger.debug("Starting thread")
@@ -112,7 +125,7 @@ class BitMEXWebsocket:
             header=self.__get_auth(),
         )
 
-        self.wst = threading.Thread(target=lambda: self.ws.run_forever())
+        self.wst = threading.Thread(target=lambda: self._dirty_reconnect(self.ws))
         self.wst.daemon = True
         self.wst.start()
         self.logger.debug("Started thread")

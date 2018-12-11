@@ -80,14 +80,17 @@ class BitMEXWebsocket:
                 if mess.get("marginLeverage"):
                     r.set(f"{table}:{self.api_key}:marginLeverage", mess["marginLeverage"])
             elif table == 'order':
-                print('ORDER:', mess)
-                # r.set(f"{table}:{self.api_key}:", mess)
+                order = r.hget(f"{table}:{self.api_key}:{mess['orderID']}", "data")
+                order = eval(order) if order else {}
+                for field in mess:
+                    order[field] = mess[field]
+                r.hset(f"{table}:{self.api_key}:{mess['orderID']}", "data", order)
             elif table == 'position':
-                position = r.get(f"{table}:{self.api_key}")
+                position = r.hget(f"{table}:{self.api_key}", "data")
                 position = eval(position) if position else {}
                 for field in mess:
                     position[field] = mess[field]
-                r.set(f"{table}:{self.api_key}", position)
+                r.hset(f"{table}:{self.api_key}", "data", position)
 
     #
     # End Public Methods

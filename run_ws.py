@@ -2,13 +2,10 @@ from data_ import BitmexDataHandler
 from app.models import ClientModel
 from private.redis_conn import r
 
-import logging
 import time
 
 NAMESPACE = "run_ws"
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename=f'{NAMESPACE}.log')
-logger = logging.getLogger(__name__)
 
 endpoint = "wss://testnet.bitmex.com/realtime"
 symbols = ["XBTUSD"]

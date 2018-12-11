@@ -41,7 +41,6 @@ class TableIhar(Table):
     def _get_balance(self, *args, **kwargs):
         for client in self.clients:
             client.api.redis_get_balance()
-        return []
 
     def add_client(self, key: str, secret: str):
         self.error_msg = ''
@@ -104,7 +103,7 @@ class TableIhar(Table):
         async_loop = load_event_loop()
         valid_price = self.check_price(async_loop, kwargs)
         tasks = []
-        tasks = self._get_balance(async_loop, tasks)
+        self._get_balance()
         balance = sum(c.balance.get('walletBalance', 0) for c in self.clients)
         if valid_price:
             for client in self.clients:
@@ -121,7 +120,7 @@ class TableIhar(Table):
     def add_failed_order(self, **kwargs):
         async_loop = load_event_loop()
         tasks = []
-        tasks = self._get_balance(async_loop, tasks)
+        self._get_balance()
         balance = sum(c.balance.get('walletBalance', 0) if c.api.failed else 0 for c in self.clients)
         for client in self.clients:
             if client.api.failed:
@@ -141,7 +140,7 @@ class TableIhar(Table):
             tasks.append(async_loop.create_task(client.api.check_everything(orders_ids)))
         run_event_loop(async_loop, tasks)
         tasks = []
-        _ = self._get_balance(async_loop, tasks)
+        self._get_balance()
         pending = asyncio.Task.all_tasks()
         run_event_loop(async_loop, asyncio.gather(*pending), preload=True)
         for client in self.clients:

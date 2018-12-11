@@ -117,3 +117,6 @@ private/
 
 debug/
 db.sqlite-journal
+
+# redis
+.rdb

@@ -77,8 +77,17 @@ class BitMEXWebsocket:
                     r.set(f"{table}:{self.api_key}:walletBalance", mess["walletBalance"] / 100000000)
                 if mess.get("marginBalance"):
                     r.set(f"{table}:{self.api_key}:marginBalance", mess["marginBalance"] / 100000000)
+                if mess.get("marginLeverage"):
+                    r.set(f"{table}:{self.api_key}:marginLeverage", mess["marginLeverage"])
             elif table == 'order':
-                pass
+                print('ORDER:', mess)
+                # r.set(f"{table}:{self.api_key}:", mess)
+            elif table == 'position':
+                position = r.get(f"{table}:{self.api_key}")
+                position = eval(position) if position else {}
+                for field in mess:
+                    position[field] = mess[field]
+                r.set(f"{table}:{self.api_key}", position)
 
     #
     # End Public Methods

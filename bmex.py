@@ -141,7 +141,6 @@ class BmexClient:
         those orders which were created from the current service/application.
         """
 
-
     async def check_everything(self, orders_ids: list):
         self.load_exchange()
         for order_id in orders_ids:

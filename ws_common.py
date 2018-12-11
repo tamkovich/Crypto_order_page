@@ -71,14 +71,14 @@ class BitMEXWebsocket:
         self.ws.close()
 
     def man(self, message, table):
-        if table == 'order':
-            print(message)
         for mess in message["data"]:
             if table == 'margin':
                 if mess.get("walletBalance"):
                     r.set(f"{table}:{self.api_key}:walletBalance", mess["walletBalance"] / 100000000)
                 if mess.get("marginBalance"):
                     r.set(f"{table}:{self.api_key}:marginBalance", mess["marginBalance"] / 100000000)
+            elif table == 'order':
+                pass
 
     #
     # End Public Methods

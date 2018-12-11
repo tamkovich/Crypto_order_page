@@ -135,6 +135,13 @@ class BmexClient:
         self._debug('rm_all_positions', {'response': response})
         await self.exchange.close()
 
+    def redis_check_everything(self, orders_ids):
+        """
+        Updates every order and positions info. Note, that it updates only
+        those orders which were created from the current service/application.
+        """
+
+
     async def check_everything(self, orders_ids: list):
         self.load_exchange()
         for order_id in orders_ids:

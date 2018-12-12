@@ -19,6 +19,7 @@ def client_ws(client):
 def main():
     clients = ClientModel.query.filter_by(visible=True).filter(ClientModel.email != 'autherror@email').all()
     wst = {}
+    r.set('client_id', 0)
     for client in clients:
         wst[client] = client_ws(client)
     while True:

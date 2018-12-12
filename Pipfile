@@ -1,0 +1,22 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+flask = "*"
+flask-socketio = "*"
+gevent = "*"
+flask-sqlalchemy = "*"
+wtforms = "*"
+ccxt = "*"
+redis = "*"
+psycopg2 = "*"
+websocket-client = "==0.46.0"
+numpy = "*"
+pandas = "*"
+
+[requires]
+python_version = "3.6"

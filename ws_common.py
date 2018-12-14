@@ -114,16 +114,16 @@ class BitMEXWebsocket:
             return []
 
     def _dirty_reconnect(self, ws):
-        _sleeps = 3
         while True:
             if self.exited:
                 break
             try:
                 ws.run_forever()
-                _sleeps = 3
+                _sleeps = 30
                 time.sleep(_sleeps)
-            except:
-                _sleeps = 5
+            except Exception as _er:
+                self.logger.error("Error : %s" % _er)
+                _sleeps = 30
                 time.sleep(_sleeps)
         ws.close()
 

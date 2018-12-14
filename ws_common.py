@@ -116,6 +116,8 @@ class BitMEXWebsocket:
     def _dirty_reconnect(self, ws):
         _sleeps = 3
         while True:
+            if self.exited:
+                break
             try:
                 ws.run_forever()
                 _sleeps = 3
@@ -123,6 +125,7 @@ class BitMEXWebsocket:
             except:
                 _sleeps = 5
                 time.sleep(_sleeps)
+        ws.close()
 
     def __connect(self, wsURL, symbol):
         """Connect to the websocket in a thread."""

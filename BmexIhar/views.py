@@ -83,6 +83,7 @@ class TableIhar(Table):
         for i, client in enumerate(self.clients):
             if client.client_object.id == int(data['client_id']):
                 client.client_object.visible = False
+                r.set('unvisible_client_id', client.client_object.id)
                 cl = ClientModel.query.filter_by(id=client.client_object.id).first()
                 cl.visible = False
                 db.session.commit()

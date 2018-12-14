@@ -3,6 +3,7 @@ import asyncio
 
 from private.redis_conn import r
 from loggers import get_logger
+from private.preprocessor import remove_prefix_b
 
 logger = get_logger('bmex')
 round_ = lambda x: round(float(x) * 2) / 2
@@ -141,7 +142,7 @@ class BmexClient:
         """
         for order_id in orders_ids:
             self.orders[order_id] = dict()
-        positions = r.hget(f"position:{self.key}", "data")
+        positions = r.get(f"position:{self.key}")
         positions = [eval(positions)] if positions else []
         self.positions = list(filter(lambda p: p['isOpen'], positions))
         for position in self.positions:
@@ -152,7 +153,7 @@ class BmexClient:
                 position['leverage'] = r.get(f"margin:{self.key}:marginLeverage")
                 position['leverage'] = eval(position['leverage']) if position['leverage'] else None
         orders_keys = r.keys(f'order:{self.key}:*')
-        orders = list(map(lambda key: eval(r.hget(key, "data")), orders_keys))
+        orders = list(map(lambda key: eval(r.get(key)), orders_keys))
         for order in orders:
             if order['ordStatus'] in ['Filled', 'Canceled']:
                 continue
@@ -162,53 +163,6 @@ class BmexClient:
                 order['type'] = order['ordType']
                 order['amount'] = order['orderQty']
                 self.orders[order['orderID']] = order
-
-    async def check_everything(self, orders_ids: list):
-        self.load_exchange()
-        for order_id in orders_ids:
-            self.orders[order_id] = dict()
-        orders = []
-        positions = []
-        for _ in range(self.retry):
-            try:
-                orders = await self.exchange.fetch_open_orders(self.symbol)
-                break
-            except ccxt.OrderNotFound:
-                await asyncio.sleep(0.5)
-            except ccxt.AuthenticationError:
-                break
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                await asyncio.sleep(0.5)
-            except Exception as _ex:
-                await asyncio.sleep(0.5)
-        for _ in range(self.retry):
-            try:
-                positions = await self.exchange.private_get_position(self.symbol)
-                break
-            except ccxt.OrderNotFound:
-                await asyncio.sleep(0.5)
-            except ccxt.AuthenticationError:
-                break
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                await asyncio.sleep(0.5)
-            except Exception as _ex:
-                await asyncio.sleep(0.5)
-        self.positions = list(filter(lambda p: p['isOpen'], positions))
-        for position in self.positions:
-            position['price'] = position['avgEntryPrice']
-            position['amount'] = position['currentQty']
-            position['side'] = 'sell' if position['amount'] < 0 else 'buy'
-            if position['crossMargin'] is True:
-                await self._calc_leverage()
-                position['leverage'] = self.balance['marginLeverage']
-
-        self._debug('check_everything', {'positions': self.positions, '_pst': positions, 'orders': orders})
-        for order in orders:
-            if order['id'] in orders_ids:
-                if not order.get('price'):
-                    order['price'] = order['info']['stopPx']
-                self.orders[order['id']] = order
-        await self.exchange.close()
 
     async def _close_order(self, order_id: str):
         order = {}

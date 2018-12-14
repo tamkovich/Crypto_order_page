@@ -204,7 +204,7 @@ class TableIhar(Table):
                 amount += client.api.order.get('amount', 0)
                 price = client.api.order.get('price', 0)
                 order_type = client.api.order.get('order_type', '')
-                print(client.api.order)
+                #print(client.api.order)
         self.failed_data['amount'] = amount
         self.failed_data['price'] = price
         self.failed_data['type'] = order_type.capitalize()

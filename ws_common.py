@@ -8,6 +8,7 @@ import time
 import redis
 
 from util_.ws_util import *
+from private.preprocessor import remove_prefix_b
 
 NAMESPACE = "ws_common"
 
@@ -80,17 +81,17 @@ class BitMEXWebsocket:
                 if mess.get("marginLeverage"):
                     r.set(f"{table}:{self.api_key}:marginLeverage", mess["marginLeverage"])
             elif table == 'order':
-                order = r.hget(f"{table}:{self.api_key}:{mess['orderID']}", "data")
+                order = r.get(f"{table}:{self.api_key}:{mess['orderID']}")
                 order = eval(order) if order else {}
                 for field in mess:
                     order[field] = mess[field]
-                r.hset(f"{table}:{self.api_key}:{mess['orderID']}", "data", order)
+                r.set(f"{table}:{self.api_key}:{mess['orderID']}", str(order))
             elif table == 'position':
-                position = r.hget(f"{table}:{self.api_key}", "data")
+                position = r.get(f"{table}:{self.api_key}")
                 position = eval(position) if position else {}
                 for field in mess:
                     position[field] = mess[field]
-                r.hset(f"{table}:{self.api_key}", "data", position)
+                r.set(f"{table}:{self.api_key}", str(position))
 
     #
     # End Public Methods

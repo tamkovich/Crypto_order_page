@@ -3,7 +3,6 @@ import asyncio
 
 from private.redis_conn import r
 from loggers import get_logger
-from private.preprocessor import remove_prefix_b
 
 logger = get_logger('bmex')
 round_ = lambda x: round(float(x) * 2) / 2

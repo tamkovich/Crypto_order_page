@@ -254,7 +254,7 @@ class BitMEXWebsocket:
         """Called on fatal websocket errors. We exit on these."""
         if not self.exited:
             self.logger.error("Error : %s" % error)
-            raise websocket.WebSocketException(error)
+            #raise websocket.WebSocketException(error)
 
     def __on_open(self, ws):
         """Called when the WS opens."""

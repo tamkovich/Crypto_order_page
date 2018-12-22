@@ -115,7 +115,7 @@ class BitmexDataHandler(DataHandler):
                 self.wst[s] = BitMEXWebsocket(
                     self.endpoint,
                     s,
-                    self.subs,
+                    auth_subs,
                     self.api,
                     self.secret,
                 )

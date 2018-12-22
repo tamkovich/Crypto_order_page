@@ -18,6 +18,7 @@ def client_ws(client):
 
 def main():
     clients = ClientModel.query.filter_by(visible=True).filter(ClientModel.email != 'autherror@email').all()
+    # print(clients)
     wst = {}
     r.set('client_id', 0)
     for client in clients:
@@ -30,6 +31,7 @@ def main():
             for ws_key in wst:
                 if ws_key.apiKey == client.apiKey:
                     for s in wst[ws_key].symbol_list:
+                        wst[ws_key].wst[s].exited = True
                         wst[ws_key].wst[s].exit()
             if client:
                 wst[client] = client_ws(client)

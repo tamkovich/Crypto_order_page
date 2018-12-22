@@ -67,7 +67,7 @@ class BitMEXWebsocket:
 
     def exit(self):
         """Call this to exit - will close websocket."""
-        self.exited = True
+        # self.exited = True
         self.ws.close()
 
     def man(self, message, table):
@@ -114,16 +114,16 @@ class BitMEXWebsocket:
             return []
 
     def _dirty_reconnect(self, ws):
+        _sleeps = 30
         while True:
             if self.exited:
                 break
             try:
                 ws.run_forever()
-                _sleeps = 30
                 time.sleep(_sleeps)
+                self.__connect(self.__get_url(), self.symbol)
             except Exception as _er:
-                self.logger.error("Error : %s" % _er)
-                _sleeps = 30
+                self.logger.error("Can't reconnect Error : %s" % _er)
                 time.sleep(_sleeps)
         ws.close()
 
@@ -254,7 +254,7 @@ class BitMEXWebsocket:
         """Called on fatal websocket errors. We exit on these."""
         if not self.exited:
             self.logger.error("Error : %s" % error)
-            #raise websocket.WebSocketException(error)
+            raise websocket.WebSocketException(error)
 
     def __on_open(self, ws):
         """Called when the WS opens."""

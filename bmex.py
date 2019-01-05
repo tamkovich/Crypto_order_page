@@ -164,7 +164,8 @@ class BmexClient:
                 order['type'] = order['ordType']
                 order['amount'] = order['orderQty']
                 self.orders[order['orderID']] = order
-        r.delete(*_to_delete)
+        if _to_delete:
+            r.delete(*_to_delete)
 
     async def _close_order(self, order_id: str):
         order = {}

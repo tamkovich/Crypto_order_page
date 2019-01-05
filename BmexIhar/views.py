@@ -2,7 +2,6 @@ import sqlalchemy.exc
 import asyncio
 import time
 
-
 from app.models import ClientModel, db
 from BmexIhar.models import ClientBmex
 from mvc.views import Table
@@ -136,13 +135,9 @@ class TableIhar(Table):
 
     def update_all(self):
         async_loop = load_event_loop()
-        tasks = []
         for client in self.clients:
             orders_ids = list(map(lambda o: o.id, client.orders))
             client.api.redis_check_everything(orders_ids)
-            # tasks.append(async_loop.create_task(client.api.check_everything(orders_ids)))
-        # run_event_loop(async_loop, tasks)
-        tasks = []
         self._get_balance()
         pending = asyncio.Task.all_tasks()
         run_event_loop(async_loop, asyncio.gather(*pending), preload=True)

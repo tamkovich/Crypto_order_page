@@ -67,7 +67,6 @@ class BitMEXWebsocket:
 
     def exit(self):
         """Call this to exit - will close websocket."""
-        # self.exited = True
         self.ws.close()
 
     def man(self, message, table):

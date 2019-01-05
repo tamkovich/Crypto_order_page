@@ -18,11 +18,11 @@ def client_ws(client):
 
 def main():
     clients = ClientModel.query.filter_by(visible=True).filter(ClientModel.email != 'autherror@email').all()
-    # print(clients)
     wst = {}
     r.set('client_id', 0)
     for client in clients:
         wst[client] = client_ws(client)
+
     while True:
         unvisible_client_id = r.get('unvisible_client_id')
         if unvisible_client_id is not None and eval(unvisible_client_id) != 0:

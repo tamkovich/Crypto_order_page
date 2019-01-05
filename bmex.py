@@ -153,8 +153,10 @@ class BmexClient:
                 position['leverage'] = eval(position['leverage']) if position['leverage'] else None
         orders_keys = r.keys(f'order:{self.key}:*')
         orders = list(map(lambda key: eval(r.get(key)), orders_keys))
+        _to_delete = []
         for order in orders:
             if order['ordStatus'] in ['Filled', 'Canceled']:
+                _to_delete.append(f'order:{self.key}:*')
                 continue
             if order['orderID'] in orders_ids:
                 if not order.get('price'):
@@ -162,6 +164,7 @@ class BmexClient:
                 order['type'] = order['ordType']
                 order['amount'] = order['orderQty']
                 self.orders[order['orderID']] = order
+        r.delete(' '.join(_to_delete))
 
     async def _close_order(self, order_id: str):
         order = {}

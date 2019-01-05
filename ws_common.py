@@ -56,7 +56,7 @@ class BitMEXWebsocket:
         # Subscribe to all pertinent endpoints
         wsURL = self.__get_url()
         self.logger.info("Connecting to %s" % wsURL)
-        self.__connect(wsURL, symbol)
+        self.__connect(wsURL)
         print(f"{self.symbol} is loaded")
         self.logger.info("Connected to WS.")
 
@@ -120,13 +120,26 @@ class BitMEXWebsocket:
             try:
                 ws.run_forever()
                 time.sleep(_sleeps)
-                self.__connect(self.__get_url(), self.symbol)
+                ws = self.__update_ws(self.__get_url())
             except Exception as _er:
                 self.logger.error("Can't reconnect Error : %s" % _er)
                 time.sleep(_sleeps)
         ws.close()
 
-    def __connect(self, wsURL, symbol):
+    def __update_ws(self, wsURL):
+        self.logger.debug("Update ws thread")
+
+        ws = websocket.WebSocketApp(
+            wsURL,
+            on_message=self.__on_message,
+            on_close=self.__on_close,
+            on_open=self.__on_open,
+            on_error=self.__on_error,
+            header=self.__get_auth(),
+        )
+        return ws
+
+    def __connect(self, wsURL):
         """Connect to the websocket in a thread."""
         self.logger.debug("Starting thread")
 

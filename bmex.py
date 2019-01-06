@@ -176,6 +176,21 @@ class BmexClient:
         self.order = {}
         self._debug('_close_order', {'order': self.order, 'response': order})
 
+    def redis_current_price(self, type, side, amount, price=None):
+        """
+        Check current price via redis to check is `invalid_price`
+        """
+        self.invalid_price = False
+        current_price = r.get(f"quote:{self._symbol[self.symbol]}")
+        if current_price:
+            current_price = eval(current_price)["ask"]
+            if (type == 'Stop' and side == 'sell') or (type == 'Limit' and side == 'buy'):
+                self.invalid_price = int(price) > current_price
+            elif (type == 'Stop' and side == 'buy') or (type == 'Limit' and side == 'sell'):
+                self.invalid_price = int(price) < current_price
+        else:
+            self.invalid_price = True
+
     async def current_price(self, type, side, amount, price=None):
         self.load_exchange()
         if type != 'Market':

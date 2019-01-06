@@ -102,7 +102,7 @@ class TableIhar(Table):
 
     def add_order(self, **kwargs):
         async_loop = load_event_loop()
-        valid_price = self.check_price(async_loop, kwargs)
+        valid_price = self.check_price(kwargs)
         tasks = []
         self._get_balance()
         balance = sum(c.balance.get('walletBalance', 0) for c in self.clients)
@@ -217,10 +217,11 @@ class TableIhar(Table):
         logger.info(f'RETURN {response}')
         return response
 
-    def check_price(self, async_loop, kwargs):
+    def check_price(self, kwargs):
         self.error_msg = ''
-        tasks = [async_loop.create_task(self.clients[0].api.current_price(**kwargs))]
-        run_event_loop(async_loop, tasks)
+        # tasks = [async_loop.create_task(self.clients[0].api.current_price(**kwargs))]
+        # run_event_loop(async_loop, tasks)
+        self.clients[0].api.redis_current_price(**kwargs)
         if self.clients[0].api.invalid_price:
             self.error_msg = 'Invalid Price'
             return False
@@ -257,6 +258,8 @@ def load_event_loop():
             return async_loop
         except:
             time.sleep(3)
+
+
 
 
 def run_event_loop(async_loop, tasks, preload=False):

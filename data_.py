@@ -95,18 +95,14 @@ class BitmexDataHandler(DataHandler):
 
     def _make_register(self):
         # Common
-        # common_subs = list(set(self.subs).intersection(NO_AUTH))
-        # if common_subs:
-        #     for s in self.symbol_list:
-        #         r = Rabbit(s)
-        #         self.latest_symbol_data[s] = {}
-        #         thr = threading.Thread(
-        #             target=lambda: r.start_consume_draft(
-        #                 common_subs, self.ws_common_callback
-        #             )
-        #         )
-        #         thr.daemon = True
-        #         thr.start()
+        common_subs = list(set(self.subs).intersection(NO_AUTH))
+        if common_subs:
+            for s in self.symbol_list:
+                self.wst[s] = BitMEXWebsocket(
+                    self.endpoint,
+                    s,
+                    common_subs,
+                )
 
         # order ws
         auth_subs = list(set(self.subs).intersection(AUTH))

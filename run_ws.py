@@ -4,22 +4,39 @@ from private.redis_conn import r
 
 import time
 
-NAMESPACE = "run_ws"
-
 
 endpoint = "wss://testnet.bitmex.com/realtime"
 symbols = ["XBTUSD"]
-subs = ["margin", "order", "position"]
+auth_subs = ["margin", "order", "position"]
+no_auth_subs = ["quote"]
 
 
 def client_ws(client):
-    return BitmexDataHandler(None, symbols, endpoint, subs, api=client.apiKey, secret=client.secret)
+    return BitmexDataHandler(
+        None,
+        symbols,
+        endpoint,
+        auth_subs,
+        api=client.apiKey,
+        secret=client.secret
+    )
 
 
 def main():
     clients = ClientModel.query.filter_by(visible=True).filter(ClientModel.email != 'autherror@email').all()
-    wst = {}
+    # clients = []
     r.set('client_id', 0)
+    # common
+    common_wst = [
+        BitmexDataHandler(
+            None,
+            symbols,
+            endpoint,
+            no_auth_subs,
+        )
+    ]
+    # auth
+    wst = {}
     for client in clients:
         wst[client] = client_ws(client)
 

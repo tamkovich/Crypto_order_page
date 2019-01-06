@@ -54,9 +54,9 @@ class BitMEXWebsocket:
 
         # We can subscribe right in the connection querystring, so let's build that.
         # Subscribe to all pertinent endpoints
-        wsURL = self.__get_url()
-        self.logger.info("Connecting to %s" % wsURL)
-        self.__connect(wsURL)
+        self.wsURL = self.__get_url()
+        self.logger.info("Connecting to %s" % self.wsURL)
+        self.__connect()
         print(f"{self.symbol} is loaded")
         self.logger.info("Connected to WS.")
 
@@ -70,26 +70,35 @@ class BitMEXWebsocket:
         self.ws.close()
 
     def man(self, message, table):
-        for mess in message["data"]:
-            if table == 'margin':
-                if mess.get("walletBalance"):
-                    r.set(f"{table}:{self.api_key}:walletBalance", mess["walletBalance"] / 100000000)
-                if mess.get("marginBalance"):
-                    r.set(f"{table}:{self.api_key}:marginBalance", mess["marginBalance"] / 100000000)
-                if mess.get("marginLeverage"):
-                    r.set(f"{table}:{self.api_key}:marginLeverage", mess["marginLeverage"])
-            elif table == 'order':
-                order = r.get(f"{table}:{self.api_key}:{mess['orderID']}")
-                order = eval(order) if order else {}
-                for field in mess:
-                    order[field] = mess[field]
-                r.set(f"{table}:{self.api_key}:{mess['orderID']}", str(order))
-            elif table == 'position':
-                position = r.get(f"{table}:{self.api_key}")
-                position = eval(position) if position else {}
-                for field in mess:
-                    position[field] = mess[field]
-                r.set(f"{table}:{self.api_key}", str(position))
+        if table == 'quote':
+            lastQuote = message["data"][-1]
+            d = {
+                "bid": lastQuote["bidPrice"],
+                "ask": lastQuote["askPrice"],
+                "ts": lastQuote["timestamp"],
+            }
+            r.set(f"{table}:{lastQuote['symbol']}", str(d))
+        else:
+            for mess in message["data"]:
+                if table == 'margin':
+                    if mess.get("walletBalance"):
+                        r.set(f"{table}:{self.api_key}:walletBalance", mess["walletBalance"] / 100000000)
+                    if mess.get("marginBalance"):
+                        r.set(f"{table}:{self.api_key}:marginBalance", mess["marginBalance"] / 100000000)
+                    if mess.get("marginLeverage"):
+                        r.set(f"{table}:{self.api_key}:marginLeverage", mess["marginLeverage"])
+                elif table == 'order':
+                    order = r.get(f"{table}:{self.api_key}:{mess['orderID']}")
+                    order = eval(order) if order else {}
+                    for field in mess:
+                        order[field] = mess[field]
+                    r.set(f"{table}:{self.api_key}:{mess['orderID']}", str(order))
+                elif table == 'position':
+                    position = r.get(f"{table}:{self.api_key}")
+                    position = eval(position) if position else {}
+                    for field in mess:
+                        position[field] = mess[field]
+                    r.set(f"{table}:{self.api_key}", str(position))
 
     #
     # End Public Methods
@@ -112,47 +121,47 @@ class BitMEXWebsocket:
             self.logger.info("Not authenticating.")
             return []
 
-    def _dirty_reconnect(self, ws):
+    def _dirty_reconnect(self):
         _sleeps = 30
         while True:
             if self.exited:
                 break
             try:
-                ws.run_forever()
+                self.ws.run_forever()
                 time.sleep(_sleeps)
-                ws = self.__update_ws(self.__get_url())
+                self.ws = self.__update_ws()
             except Exception as _er:
                 self.logger.error("Can't reconnect Error : %s" % _er)
                 time.sleep(_sleeps)
-        ws.close()
+        self.ws.close()
 
-    def __update_ws(self, wsURL):
+    def __update_ws(self):
         self.logger.debug("Update ws thread")
-
-        ws = websocket.WebSocketApp(
-            wsURL,
-            on_message=self.__on_message,
-            on_close=self.__on_close,
-            on_open=self.__on_open,
-            on_error=self.__on_error,
-            header=self.__get_auth(),
-        )
+        params = {
+            'on_message': self.__on_message,
+            'on_close': self.__on_close,
+            'on_open': self.__on_open,
+            'on_error': self.__on_error,
+        }
+        if self.api_key and self.api_secret:
+            params['header'] = self.__get_auth()
+        ws = websocket.WebSocketApp(self.wsURL, **params)
         return ws
 
-    def __connect(self, wsURL):
+    def __connect(self):
         """Connect to the websocket in a thread."""
         self.logger.debug("Starting thread")
+        params = {
+            'on_message': self.__on_message,
+            'on_close': self.__on_close,
+            'on_open': self.__on_open,
+            'on_error': self.__on_error,
+        }
+        if self.api_key and self.api_secret:
+            params['header'] = self.__get_auth()
+        self.ws = websocket.WebSocketApp(self.wsURL, **params)
 
-        self.ws = websocket.WebSocketApp(
-            wsURL,
-            on_message=self.__on_message,
-            on_close=self.__on_close,
-            on_open=self.__on_open,
-            on_error=self.__on_error,
-            header=self.__get_auth(),
-        )
-
-        self.wst = threading.Thread(target=lambda: self._dirty_reconnect(self.ws))
+        self.wst = threading.Thread(target=lambda: self._dirty_reconnect())
         self.wst.daemon = True
         self.wst.start()
         self.logger.debug("Started thread")
@@ -180,7 +189,7 @@ class BitMEXWebsocket:
 
         urlParts = list(urllib.parse.urlparse(self.endpoint))
         urlParts[0] = urlParts[0].replace("http", "ws")
-        urlParts[2] = "/realtime?subscribe={}".format(",".join(self.subs))
+        urlParts[2] = "/realtime?subscribe={}".format(",".join(self.subs))+':'+self.symbol
         return urllib.parse.urlunparse(urlParts)
 
     def __wait_for_symbol(self, symbol):

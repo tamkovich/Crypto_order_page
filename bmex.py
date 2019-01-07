@@ -191,39 +191,6 @@ class BmexClient:
         else:
             self.invalid_price = True
 
-    async def current_price(self, type, side, amount, price=None):
-        self.load_exchange()
-        if type != 'Market':
-            current_price = None
-            try:
-                markets = await self.exchange.fetchMarkets()
-                for market in markets:
-                    if market['symbol'] == self.symbol:
-                        current_price = market['info']['askPrice']
-                        break
-            except ccxt.AuthenticationError:
-                await asyncio.sleep(1)
-            if (type == 'Stop' and side == 'sell') or (type == 'Limit' and side == 'buy'):
-                self.invalid_price = int(price) > current_price
-            elif (type == 'Stop' and side == 'buy') or (type == 'Limit' and side == 'sell'):
-                self.invalid_price = int(price) < current_price
-        await self.exchange.close()
-
-    async def _calc_leverage(self):
-        balance = {}
-        for _ in range(self.retry):
-            try:
-                balance = await self.exchange.fetch_balance()
-                break
-            except ccxt.AuthenticationError:
-                break
-            except (ccxt.RequestTimeout, ccxt.ExchangeError) as _ex:
-                await asyncio.sleep(0.5)
-        try:
-            self.balance["marginLeverage"] = balance["info"][0]["marginLeverage"]
-        except (TypeError, KeyError):
-            pass
-
     async def update_user_info(self):
         self.load_exchange()
         if self.email is None:

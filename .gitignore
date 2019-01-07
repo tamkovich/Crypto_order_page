@@ -119,4 +119,4 @@ debug/
 db.sqlite-journal
 
 # redis
-.rdb
+*.rdb

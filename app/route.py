@@ -157,7 +157,7 @@ def rm_all_orders():
 
 
 @socketio.on('rm-all-positions')
-def rm_all_orders():
+def rm_all_positions():
     table.close_all_positions()
     table.update_all()
     table.view()
@@ -165,7 +165,7 @@ def rm_all_orders():
 
 
 @socketio.on('rm-client')
-def rm_all_orders(data):
+def rm_client(data):
     table.set_unvisible_client(data)
     table.update_all()
     table.view()

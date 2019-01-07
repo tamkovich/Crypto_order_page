@@ -120,27 +120,31 @@ class TableIhar(Table):
 
     def add_failed_order(self, **kwargs):
         async_loop = load_event_loop()
+        valid_price = self.check_price(kwargs)
         tasks = []
         self._get_balance()
         balance = sum(c.balance.get('walletBalance', 0) if c.api.failed else 0 for c in self.clients)
-        for client in self.clients:
-            if client.api.failed:
-                client.api.failed = False
-                # compute amount by share in balance
-                amount = int((client.balance.get('walletBalance', 0) / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
-                order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
-                order_kwargs['type'] = kwargs['type']
-                tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
+        if valid_price:
+            for client in self.clients:
+                if client.api.failed:
+                    client.api.failed = False
+                    # compute amount by share in balance
+                    amount = int((client.balance.get('walletBalance', 0) / balance) * int(kwargs['amount'])) if kwargs['amount'] is not None else None
+                    order_kwargs = self._gen_order_structure(kwargs['side'], kwargs['price'], amount)
+                    order_kwargs['type'] = kwargs['type']
+                    tasks.append(async_loop.create_task(client.api.create_order(**order_kwargs)))
         run_event_loop(async_loop, tasks)
 
     def update_all(self):
-        async_loop = load_event_loop()
         for client in self.clients:
             orders_ids = list(map(lambda o: o.id, client.orders))
             client.api.redis_check_everything(orders_ids)
         self._get_balance()
+
+        async_loop = load_event_loop()
         pending = asyncio.Task.all_tasks()
         run_event_loop(async_loop, asyncio.gather(*pending), preload=True)
+
         for client in self.clients:
             client.update_orders()
             client.get_balance()
@@ -219,8 +223,6 @@ class TableIhar(Table):
 
     def check_price(self, kwargs):
         self.error_msg = ''
-        # tasks = [async_loop.create_task(self.clients[0].api.current_price(**kwargs))]
-        # run_event_loop(async_loop, tasks)
         self.clients[0].api.redis_current_price(**kwargs)
         if self.clients[0].api.invalid_price:
             self.error_msg = 'Invalid Price'

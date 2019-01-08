@@ -88,7 +88,7 @@ def background_data():
         table.update_all()
         table.view()
         socketio.emit('reload-table', table.gen_data())
-        socketio.sleep(20)
+        socketio.sleep(5)
 
 
 @socketio.on('connect')

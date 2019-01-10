@@ -29,37 +29,35 @@ class BmexClient:
         self.positions = dict()
         self.invalid_price = False
 
-    def load_exchange(self):
-        self.exchange = ccxt.bitmex({
-            'apiKey': self.key,
-            'secret': self.secret,
-            'timeout': 30000,
-            'enableRateLimit': True,
-        })
+    ### INFO VIA ASYNCIO ###
 
-        if self.test_mode:
-            if 'test' in self.exchange.urls:
-                self.exchange.urls['api'] = self.exchange.urls['test']
-        self.exchange.open()
+    async def update_user_info(self):
+        if self.email is None:
+            self.__load_exchange()
+            try:
+                response = await self.exchange.privateGetUser()
+                self.email = response['email']
+                self._debug('update_user_info', {'response': response})
+            except ccxt.AuthenticationError:
+                self.email = 'autherror@email'
+            await self.exchange.close()
 
-    def redis_get_balance(self):
-        """
-        Fetch walletBalance and marginBalance from Redis
-        """
-        wb = r.get(f'margin:{self.key}:walletBalance')
-        mb = r.get(f'margin:{self.key}:marginBalance')
-        if wb:
-            self.balance['walletBalance'] = eval(wb)
-        if mb:
-            self.balance['marginBalance'] = eval(mb)
+    ### ACTIONS VIA ASYNCIO ###
 
-    def _debug(self, filename, params={}):
-        if self.debug_mode:
-            with open(f'{self.debug_files_path}{filename}_{self.key}.txt', 'w') as f:
-                for k in params.keys():
-                    f.write(f'{k} = {params[k]}\n')
+    async def create_order(self, type, side, amount, price=None):
+        logger.info(f'GET {type}|{side}|{amount}|{price}')
+        if type == 'Market':
+            await self._create_order(type, side, amount, price)
+        else:
+            if type == 'Stop':
+                params = {"stopPx": round_(price), "execInst": "LastPrice"}
+                await self._create_order(type, side, amount, None, params=params)
+            else:
+                await self._create_order(type, side, amount, price)
+        logger.info(f'RETURN {self.order}')
 
     async def _create_order(self, order_type, side, amount, price=None, params={}):
+        self.__load_exchange()
         self.invalid_price = False
 
         order = {}
@@ -96,23 +94,10 @@ class BmexClient:
         else:
             self.order = order
             self._debug(f'create_{self.order.get("type")}_order', {'order': self.order})
-
-    async def create_order(self, type, side, amount, price=None):
-        logger.info(f'GET {type}|{side}|{amount}|{price}')
-        self.load_exchange()
-        if type == 'Market':
-            await self._create_order(type, side, amount, price)
-        else:
-            if type == 'Stop':
-                params = {"stopPx": round_(price), "execInst": "LastPrice"}
-                await self._create_order(type, side, amount, None, params=params)
-            else:
-                await self._create_order(type, side, amount, price)
-        logger.info(f'RETURN {self.order}')
         await self.exchange.close()
 
     async def rm_all_orders(self):
-        self.load_exchange()
+        self.__load_exchange()
         try:
             orders = await self.exchange.fetch_open_orders(self.symbol)
         except ccxt.AuthenticationError:
@@ -126,13 +111,34 @@ class BmexClient:
         await self.exchange.close()
 
     async def rm_all_positions(self):
-        self.load_exchange()
+        self.__load_exchange()
         try:
             response = await self.exchange.privatePostOrderClosePosition({'symbol': self._symbol[self.symbol]})
         except ccxt.AuthenticationError:
             response = None
         self._debug('rm_all_positions', {'response': response})
         await self.exchange.close()
+
+    async def _close_order(self, order_id: str):
+        order = {}
+        try:
+            order = await self.exchange.cancel_order(order_id, self.symbol)
+        except ccxt.AuthenticationError:
+            pass
+        self.order = {}
+        self._debug('_close_order', {'order': self.order, 'response': order})
+
+    ### INFO VIA REDIS ###
+
+    def redis_get_balance(self):
+        """Fetch walletBalance and marginBalance from Redis"""
+
+        wb = r.get(f'margin:{self.key}:walletBalance')
+        if wb:
+            self.balance['walletBalance'] = eval(wb)
+        mb = r.get(f'margin:{self.key}:marginBalance')
+        if mb:
+            self.balance['marginBalance'] = eval(mb)
 
     def redis_check_everything(self, orders_ids):
         """
@@ -167,15 +173,6 @@ class BmexClient:
         if _to_delete:
             r.delete(*_to_delete)
 
-    async def _close_order(self, order_id: str):
-        order = {}
-        try:
-            order = await self.exchange.cancel_order(order_id, self.symbol)
-        except ccxt.AuthenticationError:
-            pass
-        self.order = {}
-        self._debug('_close_order', {'order': self.order, 'response': order})
-
     def redis_current_price(self, type, side, amount, price=None):
         """
         Check current price via redis to check is `invalid_price`
@@ -191,16 +188,28 @@ class BmexClient:
         else:
             self.invalid_price = True
 
-    async def update_user_info(self):
-        self.load_exchange()
-        if self.email is None:
-            try:
-                response = await self.exchange.privateGetUser()
-                self.email = response['email']
-                self._debug('update_user_info', {'response': response})
-            except ccxt.AuthenticationError:
-                self.email = 'autherror@email'
-        await self.exchange.close()
+    #
+    # End Public Methods
+    #
+
+    def _debug(self, filename, params={}):
+        if self.debug_mode:
+            with open(f'{self.debug_files_path}{filename}_{self.key}.txt', 'w') as f:
+                for k in params.keys():
+                    f.write(f'{k} = {params[k]}\n')
+
+    def __load_exchange(self):
+        self.exchange = ccxt.bitmex({
+            'apiKey': self.key,
+            'secret': self.secret,
+            'timeout': 30000,
+            'enableRateLimit': True,
+        })
+
+        if self.test_mode:
+            if 'test' in self.exchange.urls:
+                self.exchange.urls['api'] = self.exchange.urls['test']
+        self.exchange.open()
 
 
 def _is_field_not_blank(field, *filters):

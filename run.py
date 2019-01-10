@@ -2,6 +2,6 @@ from gevent import monkey
 
 monkey.patch_all()
 
-from app import app, socketio
+from app import app, socketio, config
 
-socketio.run(app, '0.0.0.0', 5000, debug=False)
+socketio.run(app, config['app']['host'], config['app']['port'], debug=False)

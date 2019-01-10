@@ -5,16 +5,14 @@ import json
 import logging
 import urllib
 import time
-import redis
 
 from util_.ws_util import *
+from base.table import WsDataHandler
 
 NAMESPACE = "ws_common"
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename=f'{NAMESPACE}.log')
 logger = logging.getLogger(__name__)
-
-r = redis.StrictRedis(host='localhost', charset="utf-8", port=6379, db=0)
 
 
 def find_by_keys(keys, rows, match):
@@ -41,6 +39,8 @@ class BitMEXWebsocket:
         """Connect to the websocket and initialize data stores."""
         self.logger = logging.getLogger(NAMESPACE)
         self.logger.debug("Initializing WebSocket.")
+
+        self.man_handler = WsDataHandler(api_key)
 
         self.endpoint = endpoint
         self.symbol = symbol
@@ -70,35 +70,7 @@ class BitMEXWebsocket:
         self.ws.close()
 
     def man(self, message, table):
-        if table == 'quote':
-            lastQuote = message["data"][-1]
-            d = {
-                "bid": lastQuote["bidPrice"],
-                "ask": lastQuote["askPrice"],
-                "ts": lastQuote["timestamp"],
-            }
-            r.set(f"{table}:{lastQuote['symbol']}", str(d))
-        else:
-            for mess in message["data"]:
-                if table == 'margin':
-                    if mess.get("walletBalance"):
-                        r.set(f"{table}:{self.api_key}:walletBalance", mess["walletBalance"] / 100000000)
-                    if mess.get("marginBalance"):
-                        r.set(f"{table}:{self.api_key}:marginBalance", mess["marginBalance"] / 100000000)
-                    if mess.get("marginLeverage"):
-                        r.set(f"{table}:{self.api_key}:marginLeverage", mess["marginLeverage"])
-                elif table == 'order':
-                    order = r.get(f"{table}:{self.api_key}:{mess['orderID']}")
-                    order = eval(order) if order else {}
-                    for field in mess:
-                        order[field] = mess[field]
-                    r.set(f"{table}:{self.api_key}:{mess['orderID']}", str(order))
-                elif table == 'position':
-                    position = r.get(f"{table}:{self.api_key}")
-                    position = eval(position) if position else {}
-                    for field in mess:
-                        position[field] = mess[field]
-                    r.set(f"{table}:{self.api_key}", str(position))
+        self.man_handler.man(message, table)
 
     #
     # End Public Methods

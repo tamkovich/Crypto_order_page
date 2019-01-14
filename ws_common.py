@@ -30,6 +30,20 @@ def find_by_keys(keys, rows, match):
 # poll really often if it wants.
 
 
+def run_forever(ws: websocket.WebSocketApp, logger):
+    """https://github.com/websocket-client/websocket-client/pull/492"""
+    while True:
+        try:
+            if not ws.run_forever():
+                logger.info("Bye")
+                break
+            else:
+                time.sleep(1)
+                logger.info("Reconnecting...")
+        except:
+            pass
+
+
 class BitMEXWebsocket:
 
     # Don't grow a table larger than this amount. Helps cap memory usage.
@@ -133,7 +147,7 @@ class BitMEXWebsocket:
             params['header'] = self.__get_auth()
         self.ws = websocket.WebSocketApp(self.wsURL, **params)
 
-        self.wst = threading.Thread(target=lambda: self._dirty_reconnect())
+        self.wst = threading.Thread(target=lambda: run_forever(self.ws, self.logger))
         self.wst.daemon = True
         self.wst.start()
         self.logger.debug("Started thread")
@@ -175,7 +189,7 @@ class BitMEXWebsocket:
             args = []
         self.ws.send(json.dumps({"op": command, "args": args}))
 
-    def __on_message(self, ws, message):
+    def __on_message(self, message):
         """Handler for parsing WS messages."""
         # timestamp = time.time()
         message = json.loads(message)
@@ -243,17 +257,17 @@ class BitMEXWebsocket:
         except:
             self.logger.error(traceback.format_exc())
 
-    def __on_error(self, ws, error):
+    def __on_error(self, error):
         """Called on fatal websocket errors. We exit on these."""
         if not self.exited:
             self.logger.error("Error : %s" % error)
             raise websocket.WebSocketException(error)
 
-    def __on_open(self, ws):
+    def __on_open(self):
         """Called when the WS opens."""
         self.logger.debug("Websocket Opened.")
 
-    def __on_close(self, ws):
+    def __on_close(self):
         """Called on websocket close."""
         self.logger.info("Websocket Closed")
 

@@ -121,6 +121,21 @@ class BitMEXWebsocket:
                 time.sleep(_sleeps)
         self.ws.close()
 
+    def run_forever(self):
+        """https://github.com/websocket-client/websocket-client/pull/492"""
+        while True:
+            if self.exited:
+                break
+            try:
+                if not self.ws.run_forever():
+                    self.logger.info("Bye")
+                time.sleep(30)
+                self.logger.info("Reconnecting...")
+            except Exception as _er:
+                self.logger.error("Can't reconnect Error : %s" % _er)
+                time.sleep(30)
+        self.ws.close()
+
     def __update_ws(self):
         self.logger.debug("Update ws thread")
         params = {
@@ -146,8 +161,8 @@ class BitMEXWebsocket:
         if self.api_key and self.api_secret:
             params['header'] = self.__get_auth()
         self.ws = websocket.WebSocketApp(self.wsURL, **params)
-
-        self.wst = threading.Thread(target=lambda: run_forever(self.ws, self.logger))
+        
+        self.wst = threading.Thread(target=lambda: self.run_forever())
         self.wst.daemon = True
         self.wst.start()
         self.logger.debug("Started thread")

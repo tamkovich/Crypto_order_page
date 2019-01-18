@@ -130,6 +130,7 @@ class BitMEXWebsocket:
                 if not self.ws.run_forever():
                     self.logger.info("Bye")
                 time.sleep(30)
+                self.ws = self.__update_ws()
                 self.logger.info("Reconnecting...")
             except Exception as _er:
                 self.logger.error("Can't reconnect Error : %s" % _er)
@@ -161,7 +162,7 @@ class BitMEXWebsocket:
         if self.api_key and self.api_secret:
             params['header'] = self.__get_auth()
         self.ws = websocket.WebSocketApp(self.wsURL, **params)
-        
+
         self.wst = threading.Thread(target=lambda: self.run_forever())
         self.wst.daemon = True
         self.wst.start()
